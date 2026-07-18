@@ -1,0 +1,13 @@
+# Зависимости и сборка (детали — в web/.gitignore)
+node_modules/
+
+# Obsidian: рабочее состояние хранилища, к проекту отношения не имеет
+.obsidian/
+
+# Локальные разрешения Claude Code (машинозависимые). Определения
+# агентов в .claude/agents/ — наоборот, часть проекта и коммитятся.
+.claude/settings.local.json
+
+# ОС
+.DS_Store
+Thumbs.db
