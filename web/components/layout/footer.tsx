@@ -2,11 +2,8 @@ import Link from "next/link";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Logo } from "./logo";
-import {
-  InstagramIcon,
-  TelegramIcon,
-  FacebookIcon,
-} from "@/components/icons/social";
+import { InstagramIcon, TelegramIcon } from "@/components/icons/social";
+import { SITE_CONTACTS } from "@/lib/site";
 
 const NAV = [
   { href: "/", label: "Главная" },
@@ -34,14 +31,30 @@ export function Footer() {
             конференций по всему Казахстану.
           </p>
           <div className="mt-5 flex items-center gap-3 text-muted">
-            <a href="#" aria-label="Instagram" className="hover:text-brand-600">
+            <a
+              href={SITE_CONTACTS.instagram.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Instagram ${SITE_CONTACTS.instagram.handle}`}
+              className="hover:text-brand-600"
+            >
               <InstagramIcon />
             </a>
-            <a href="#" aria-label="Telegram" className="hover:text-brand-600">
+            <a
+              href={SITE_CONTACTS.telegram.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Telegram ${SITE_CONTACTS.telegram.handle}`}
+              className="hover:text-brand-600"
+            >
               <TelegramIcon />
             </a>
-            <a href="#" aria-label="Facebook" className="hover:text-brand-600">
-              <FacebookIcon />
+            <a
+              href={`mailto:${SITE_CONTACTS.email}`}
+              aria-label={`Написать на ${SITE_CONTACTS.email}`}
+              className="hover:text-brand-600"
+            >
+              <Mail size={20} />
             </a>
           </div>
         </div>
@@ -86,14 +99,25 @@ export function Footer() {
           <ul className="mt-4 space-y-3 text-sm text-muted">
             <li className="flex items-center gap-2.5">
               <Mail size={16} className="text-brand-600" />
-              MyDebate1@gmail.com
+              <a
+                href={`mailto:${SITE_CONTACTS.email}`}
+                className="hover:text-brand-600"
+              >
+                {SITE_CONTACTS.email}
+              </a>
             </li>
             <li className="flex items-center gap-2.5">
-              <Phone size={16} className="text-brand-600" />8 701 272 0010
+              <Phone size={16} className="text-brand-600" />
+              <a
+                href={SITE_CONTACTS.phone.href}
+                className="hover:text-brand-600"
+              >
+                {SITE_CONTACTS.phone.display}
+              </a>
             </li>
             <li className="flex items-center gap-2.5">
               <MapPin size={16} className="text-brand-600" />
-              Астана, Казахстан
+              {SITE_CONTACTS.city}
             </li>
           </ul>
         </div>

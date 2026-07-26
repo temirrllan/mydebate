@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ParticipantCard } from "@/components/tournaments/participant-card";
+import { ParticipantsManager } from "@/components/tournaments/participants-manager";
 import { requireUser } from "@/lib/auth/session";
 import { listTournamentParticipants } from "@/lib/tournaments/queries";
 
@@ -66,21 +65,7 @@ export default async function TournamentParticipantsPage({
       </div>
 
       <div className="mt-8">
-        {participants.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="Пока никто не зарегистрировался"
-            description="Как только появятся заявки на участие, они отобразятся здесь."
-          />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {participants.map((p, index) => (
-              <div key={p.id} className="animate-fade-in" style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}>
-                <ParticipantCard participant={p} />
-              </div>
-            ))}
-          </div>
-        )}
+        <ParticipantsManager tournamentId={tournament.id} participants={participants} />
       </div>
     </Container>
   );

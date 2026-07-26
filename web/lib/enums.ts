@@ -56,11 +56,15 @@ export const RegistrationType = {
 export type RegistrationType = (typeof RegistrationType)[keyof typeof RegistrationType];
 
 // Registration.status
+// REJECTED — заявка отклонена организатором (в отличие от отмены самим
+// участником: та удаляет запись, см. cancelRegistration). Организатор
+// переключает статусы вручную на /tournaments/[id]/participants.
 export const RegistrationStatus = {
   PENDING: "PENDING",
   ACCEPTED: "ACCEPTED",
   CONFIRMED: "CONFIRMED",
   WAITLIST: "WAITLIST",
+  REJECTED: "REJECTED",
 } as const;
 export type RegistrationStatus = (typeof RegistrationStatus)[keyof typeof RegistrationStatus];
 
@@ -90,6 +94,10 @@ export const NotificationType = {
   // lib/actions/tournaments.ts editTournament) — spec §7 "Notifications:
   // tournament changed". Не путать с TOURNAMENT_PUBLISHED/HIDDEN/DELETED.
   TOURNAMENT_CHANGED: "TOURNAMENT_CHANGED",
+  // Участнику, когда организатор меняет статус его заявки на
+  // /tournaments/[id]/participants (принял / отклонил / лист ожидания /
+  // подтвердил) — lib/actions/registrations.ts setRegistrationStatus.
+  REGISTRATION_STATUS_CHANGED: "REGISTRATION_STATUS_CHANGED",
   // Пользователю, когда админ вручную меняет его роль (админ-панель,
   // lib/actions/admin.ts setUserRole) — не путать с авто-повышением до
   // ORGANIZER после первого одобренного турнира (там TOURNAMENT_PUBLISHED).

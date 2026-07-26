@@ -17,9 +17,10 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireUser } from "@/lib/auth/session";
-import { TournamentStatus, NotificationType } from "@/lib/enums";
+import { TournamentStatus, NotificationType, Role } from "@/lib/enums";
 import { isRegistrationOpen, REGISTRATION_SUCCESS_MESSAGE } from "@/lib/format";
-import { registrationSchema } from "@/lib/validations/registration";
+import { registrationSchema, registrationStatusSchema } from "@/lib/validations/registration";
+import { REG_STATUS_LABEL } from "@/lib/format";
 import { createNotification } from "@/lib/notifications/create";
 
 export type RegistrationActionState =
@@ -178,4 +179,73 @@ export async function cancelRegistration(tournamentId: string): Promise<CancelRe
   revalidatePath("/profile");
 
   return { ok: true };
+}
+
+export type SetRegistrationStatusResult = { ok: true; status: string } | { ok: false; error: string };
+
+/**
+ * Смена статуса заявки участника ОРГАНИЗАТОРОМ турнира (или админом).
+ * Управление заявками на /tournaments/[id]/participants (spec §9.4 «list
+ * participants» → расширено до accept/reject/waitlist по запросу заказчика).
+ *
+ * Контроль доступа: менять статус может ТОЛЬКО владелец турнира или ADMIN —
+ * повторяем проверку на сервере, не доверяем клиенту (never trust the client).
+ * Возвращаем структурный результат (не редирект) для оптимистичного UI.
+ */
+export async function setRegistrationStatus(
+  registrationId: string,
+  status: string,
+): Promise<SetRegistrationStatusResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Необходимо войти в систему." };
+
+  const parsed = registrationStatusSchema.safeParse(status);
+  if (!parsed.success) return { ok: false, error: "Некорректный статус заявки." };
+
+  const registration = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    select: {
+      id: true,
+      status: true,
+      userId: true,
+      tournament: { select: { id: true, title: true, organizerId: true } },
+    },
+  });
+
+  // Не палим существование чужой заявки — для не-владельца-не-админа общий
+  // «не найдено» (как в listTournamentParticipants).
+  const isOwner = registration?.tournament.organizerId === user.id;
+  const isAdmin = user.role === Role.ADMIN;
+  if (!registration || (!isOwner && !isAdmin)) {
+    return { ok: false, error: "Заявка не найдена." };
+  }
+
+  if (registration.status === parsed.data) {
+    return { ok: true, status: parsed.data };
+  }
+
+  await prisma.registration.update({
+    where: { id: registration.id },
+    data: { status: parsed.data },
+  });
+
+  console.log(
+    `[registrations] user=${user.id} сменил статус заявки=${registration.id} на ${parsed.data}`,
+  );
+
+  // Уведомляем участника о новом статусе его заявки (spec §7 Notifications).
+  await createNotification({
+    userId: registration.userId,
+    type: NotificationType.REGISTRATION_STATUS_CHANGED,
+    title: "Статус заявки изменён",
+    message: `Статус вашей заявки на турнир «${registration.tournament.title}»: ${
+      REG_STATUS_LABEL[parsed.data] ?? parsed.data
+    }.`,
+    link: `/tournaments/${registration.tournament.id}`,
+  });
+
+  revalidatePath(`/tournaments/${registration.tournament.id}/participants`);
+  revalidatePath("/profile");
+
+  return { ok: true, status: parsed.data };
 }

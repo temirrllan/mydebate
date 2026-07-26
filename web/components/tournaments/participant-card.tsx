@@ -22,7 +22,18 @@ import type { TournamentParticipant } from "@/lib/tournaments/queries";
  * регистрации, lib/actions/registrations.ts) могут быть пустыми у старых
  * записей — каждая строка рендерится только если значение заполнено.
  */
-export function ParticipantCard({ participant }: { participant: TournamentParticipant }) {
+export function ParticipantCard({
+  participant,
+  control,
+}: {
+  participant: TournamentParticipant;
+  /**
+   * Необязательный слот управления статусом (селектор организатора). Когда
+   * передан — заменяет статичный бейдж статуса; на публичном/read-only
+   * рендере не передаётся, и карточка выглядит как раньше.
+   */
+  control?: React.ReactNode;
+}) {
   const displayName = participant.fullName || `${participant.user.firstName} ${participant.user.lastName}`;
   const initials = `${participant.user.firstName?.[0] ?? ""}${participant.user.lastName?.[0] ?? ""}`.toUpperCase();
 
@@ -70,9 +81,11 @@ export function ParticipantCard({ participant }: { participant: TournamentPartic
             </p>
           </div>
         </div>
-        <Badge tone={REG_STATUS_TONE[participant.status] ?? "gray"}>
-          {REG_STATUS_LABEL[participant.status] ?? participant.status}
-        </Badge>
+        {control ?? (
+          <Badge tone={REG_STATUS_TONE[participant.status] ?? "gray"}>
+            {REG_STATUS_LABEL[participant.status] ?? participant.status}
+          </Badge>
+        )}
       </div>
 
       {rows.length > 0 && (

@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { IllustrationPanel } from "@/components/ui/illustration-panel";
 import { ContactCard } from "@/components/contact-card";
-import { InstagramIcon, TikTokIcon } from "@/components/icons/social";
+import { InstagramIcon, TelegramIcon } from "@/components/icons/social";
 import { ContactForm } from "@/components/support/contact-form";
 import { getCurrentUser } from "@/lib/auth/session";
+import { SITE_CONTACTS } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Контакты" };
 
@@ -67,10 +68,10 @@ export default async function ContactsPage() {
             <ContactCard
               icon={Phone}
               label="Телефон"
-              value="+7 701 272 0010"
+              value={SITE_CONTACTS.phone.display}
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
-                  <a href="tel:+77012720010">
+                  <a href={SITE_CONTACTS.phone.href}>
                     <Phone size={16} /> Позвонить
                   </a>
                 </Button>
@@ -79,10 +80,10 @@ export default async function ContactsPage() {
             <ContactCard
               icon={Mail}
               label="Email"
-              value="MyDebate1@gmail.com"
+              value={SITE_CONTACTS.email}
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
-                  <a href="mailto:MyDebate1@gmail.com">
+                  <a href={`mailto:${SITE_CONTACTS.email}`}>
                     <Mail size={16} /> Написать письмо
                   </a>
                 </Button>
@@ -91,23 +92,23 @@ export default async function ContactsPage() {
             <ContactCard
               icon={InstagramIcon}
               label="Instagram"
-              value="@MyDebate.KZ"
+              value={SITE_CONTACTS.instagram.handle}
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
-                  <a href="https://instagram.com/mydebate.kz" target="_blank" rel="noreferrer">
+                  <a href={SITE_CONTACTS.instagram.url} target="_blank" rel="noreferrer">
                     Перейти в Instagram
                   </a>
                 </Button>
               }
             />
             <ContactCard
-              icon={TikTokIcon}
-              label="TikTok"
-              value="MyDebate"
+              icon={TelegramIcon}
+              label="Telegram"
+              value={SITE_CONTACTS.telegram.handle}
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
-                  <a href="https://tiktok.com/@mydebate" target="_blank" rel="noreferrer">
-                    Перейти в TikTok
+                  <a href={SITE_CONTACTS.telegram.url} target="_blank" rel="noreferrer">
+                    Перейти в Telegram
                   </a>
                 </Button>
               }

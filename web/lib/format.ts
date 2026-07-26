@@ -36,15 +36,39 @@ export const REG_STATUS_LABEL: Record<string, string> = {
   [RegistrationStatus.ACCEPTED]: "Заявка принята",
   [RegistrationStatus.CONFIRMED]: "Регистрация подтверждена",
   [RegistrationStatus.WAITLIST]: "В листе ожидания",
+  [RegistrationStatus.REJECTED]: "Заявка отклонена",
 };
 
 /** Тон Badge, соответствующий статусу заявки — держите в паре с REG_STATUS_LABEL. */
-export const REG_STATUS_TONE: Record<string, "blue" | "green" | "orange" | "gray"> = {
+export const REG_STATUS_TONE: Record<string, "blue" | "green" | "orange" | "gray" | "red"> = {
   [RegistrationStatus.PENDING]: "orange",
   [RegistrationStatus.ACCEPTED]: "blue",
   [RegistrationStatus.CONFIRMED]: "green",
   [RegistrationStatus.WAITLIST]: "gray",
+  [RegistrationStatus.REJECTED]: "red",
 };
+
+/**
+ * Короткие подписи для управления заявками организатором (кнопки/фильтры на
+ * /tournaments/[id]/participants). Отличаются от REG_STATUS_LABEL: там текст
+ * с точки зрения участника («Заявка принята»), здесь — действие/срез
+ * организатора («Принята»). Порядок массива задаёт порядок фильтров.
+ */
+export const REG_STATUS_SHORT_LABEL: Record<string, string> = {
+  [RegistrationStatus.PENDING]: "На рассмотрении",
+  [RegistrationStatus.ACCEPTED]: "Принята",
+  [RegistrationStatus.CONFIRMED]: "Подтверждена",
+  [RegistrationStatus.WAITLIST]: "Лист ожидания",
+  [RegistrationStatus.REJECTED]: "Отклонена",
+};
+
+export const REG_STATUS_ORDER: string[] = [
+  RegistrationStatus.PENDING,
+  RegistrationStatus.ACCEPTED,
+  RegistrationStatus.CONFIRMED,
+  RegistrationStatus.WAITLIST,
+  RegistrationStatus.REJECTED,
+];
 
 /** «5 000 ₸» — цена участия, 0/undefined → «Бесплатно». */
 export function formatPrice(price: number | null | undefined): string {

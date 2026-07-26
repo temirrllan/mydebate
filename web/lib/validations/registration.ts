@@ -10,7 +10,7 @@
 // не доверяем только клиентской проверке.
 
 import { z } from "zod";
-import { Level } from "@/lib/enums";
+import { Level, RegistrationStatus } from "@/lib/enums";
 import { emailSchema } from "@/lib/validations/auth";
 
 export const registrationSchema = z.object({
@@ -45,3 +45,19 @@ export const registrationSchema = z.object({
 });
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;
+
+/**
+ * Смена статуса заявки организатором (setRegistrationStatus). PENDING здесь
+ * допустим осознанно — организатор может вернуть заявку «на рассмотрение»,
+ * если передумал.
+ */
+export const registrationStatusSchema = z.enum(
+  [
+    RegistrationStatus.PENDING,
+    RegistrationStatus.ACCEPTED,
+    RegistrationStatus.CONFIRMED,
+    RegistrationStatus.WAITLIST,
+    RegistrationStatus.REJECTED,
+  ],
+  { error: "Некорректный статус заявки" },
+);
