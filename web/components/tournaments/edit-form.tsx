@@ -1,52 +1,77 @@
 "use client";
 
-import { useActionState, useState, startTransition } from "react";
+import { useActionState, useRef, useState, useTransition, startTransition } from "react";
 import Link from "next/link";
-import { CheckCircle2, Save, Info, Calendar, MapPin, Wallet, Globe2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Save, ClipboardCheck, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FieldError } from "@/components/auth/field-error";
-import { ImageUploadField } from "@/components/tournaments/create/image-upload-field";
-import { SectionsEditor } from "@/components/tournaments/create/sections-editor";
-import type { WizardSection } from "@/components/tournaments/create/types";
-import { editTournament } from "@/lib/actions/tournaments";
-// ВАЖНО: EDIT_TOURNAMENT_SUCCESS_MESSAGE (константа) намеренно НЕ импортируется
-// сюда — та же причина, что и у REGISTRATION_SUCCESS_MESSAGE/
-// SUPPORT_TICKET_SUCCESS_MESSAGE (см. register-form.tsx/contact-form.tsx):
-// "use server" файлы в этой версии Next/Turbopack обязаны экспортировать
-// только async-функции, если модуль попадает в клиентский бандл.
-import { step2Schema } from "@/lib/validations/tournament";
-import { TournamentStatus } from "@/lib/enums";
-import { FORMAT_LABEL, LOCATION_TYPE_LABEL, formatDateRu, formatPrice } from "@/lib/format";
+import { Step1BasicInfo } from "@/components/tournaments/create/step1-basic-info";
+import { Step2Content } from "@/components/tournaments/create/step2-content";
+import { Step3Contacts } from "@/components/tournaments/create/step3-contacts";
+import { INITIAL_WIZARD_VALUES, type FieldErrors, type WizardValues } from "@/components/tournaments/create/types";
+import { editTournament, deleteOwnTournament } from "@/lib/actions/tournaments";
+// EDIT_TOURNAMENT_SUCCESS_MESSAGE намеренно НЕ импортируется сюда (та же
+// причина, что и раньше: "use server"-файл в клиентском бандле экспортирует
+// только async-функции).
+import { editStep1Schema, step2Schema, step3Schema } from "@/lib/validations/tournament";
+import { TournamentStatus, parseLanguages } from "@/lib/enums";
 import type { TournamentEditData } from "@/lib/tournaments/queries";
 
 const initialState = undefined;
-const MIN_DESCRIPTION_LENGTH = 50;
+
+/** Date -> "YYYY-MM-DD" (как хранится и как ждёт DatePicker); null -> "". */
+function dateToInput(d: Date | null | undefined): string {
+  return d ? new Date(d).toISOString().slice(0, 10) : "";
+}
+
+function buildInitialValues(t: TournamentEditData): WizardValues {
+  return {
+    ...INITIAL_WIZARD_VALUES,
+    title: t.title,
+    format: t.format,
+    locationType: t.locationType,
+    level: t.level ?? "",
+    languages: parseLanguages(t.languages),
+    city: t.city ?? "",
+    address: t.address ?? "",
+    venue: t.venue ?? "",
+    startDate: dateToInput(t.startDate),
+    endDate: dateToInput(t.endDate),
+    registrationDeadline: dateToInput(t.registrationDeadline),
+    price: String(t.price ?? 0),
+    description: t.description,
+    coverImage: t.coverImage ?? "",
+    logoImage: t.logoImage ?? "",
+    sections: t.sections.map((s) => ({ title: s.title, description: s.description })),
+    registrationType: t.registrationType || "PLATFORM",
+    externalUrl: t.externalUrl ?? "",
+    instagram: t.instagram ?? "",
+    telegram: t.telegram ?? "",
+    email: t.email ?? "",
+  };
+}
 
 /**
- * Форма редактирования турнира организатором (Этап 7, фича 2). Редактируются
- * только description/coverImage/logoImage/sections — дата, цена, формат и
- * место показаны read-only ниже (спек: меняются только через поддержку).
- * Как и SectionsEditor/ImageUploadField, поля контролируемые (не нативный
- * FormData со страницы) — на submit вручную собираем FormData и вызываем
- * `formAction` напрямую (тот же приём, что и на финальном шаге
- * create-wizard.tsx).
+ * Полная форма редактирования турнира организатором (или админом). В отличие
+ * от прежней версии (только описание) — редактируются ВСЕ поля: основная
+ * информация, даты/цена/место, описание/обложка/разделы, контакты. Шаги
+ * мастера создания (Step1/Step2/Step3) переиспользуются как единая
+ * прокручиваемая страница, без дублирования разметки полей.
  */
 export function EditTournamentForm({ tournament }: { tournament: TournamentEditData }) {
   const boundAction = editTournament.bind(null, tournament.id);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
+  const [values, setValues] = useState<WizardValues>(() => buildInitialValues(tournament));
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const errorBannerRef = useRef<HTMLParagraphElement>(null);
 
-  const [description, setDescription] = useState(tournament.description);
-  const [coverImage, setCoverImage] = useState(tournament.coverImage ?? "");
-  const [logoImage, setLogoImage] = useState(tournament.logoImage ?? "");
-  const [sections, setSections] = useState<WizardSection[]>(
-    tournament.sections.map((s) => ({ title: s.title, description: s.description })),
-  );
-  const [clientErrors, setClientErrors] = useState<Record<string, string[]>>({});
-
-  const fieldErrors = { ...clientErrors, ...(state?.fieldErrors ?? {}) };
+  const fieldErrors = { ...errors, ...(state?.fieldErrors ?? {}) };
   const canViewTournament = tournament.status === TournamentStatus.PUBLISHED;
+
+  function update<K extends keyof WizardValues>(key: K, value: WizardValues[K]) {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  }
 
   if (state?.success) {
     return (
@@ -73,145 +98,205 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const result = step2Schema.safeParse({ description, coverImage, logoImage, sections });
-    if (!result.success) {
-      setClientErrors(result.error.flatten().fieldErrors as Record<string, string[]>);
+    // Клиентская валидация теми же схемами, что и мастер (step1 — в edit-версии
+    // с допуском дедлайна в прошлом). Ошибки со всех «шагов» объединяем, чтобы
+    // подсветить любые поля на единой странице.
+    const s1 = editStep1Schema.safeParse({
+      title: values.title,
+      format: values.format,
+      locationType: values.locationType,
+      level: values.level,
+      languages: values.languages,
+      city: values.city,
+      address: values.address,
+      venue: values.venue,
+      startDate: values.startDate,
+      endDate: values.endDate,
+      registrationDeadline: values.registrationDeadline,
+      price: values.price,
+    });
+    const s2 = step2Schema.safeParse({
+      description: values.description,
+      coverImage: values.coverImage,
+      logoImage: values.logoImage,
+      sections: values.sections,
+    });
+    const s3 = step3Schema.safeParse({
+      registrationType: values.registrationType,
+      externalUrl: values.externalUrl,
+      instagram: values.instagram,
+      telegram: values.telegram,
+      email: values.email,
+    });
+
+    const merged: FieldErrors = {
+      ...(s1.success ? {} : (s1.error.flatten().fieldErrors as FieldErrors)),
+      ...(s2.success ? {} : (s2.error.flatten().fieldErrors as FieldErrors)),
+      ...(s3.success ? {} : (s3.error.flatten().fieldErrors as FieldErrors)),
+    };
+
+    if (Object.keys(merged).length > 0) {
+      setErrors(merged);
+      errorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    setClientErrors({});
+    setErrors({});
 
     const fd = new FormData();
-    fd.set("description", description);
-    fd.set("coverImage", coverImage);
-    fd.set("logoImage", logoImage);
-    fd.set("sectionsJson", JSON.stringify(sections));
+    fd.set("title", values.title);
+    fd.set("format", values.format);
+    fd.set("locationType", values.locationType);
+    fd.set("level", values.level);
+    values.languages.forEach((lang) => fd.append("languages", lang));
+    fd.set("city", values.city);
+    fd.set("address", values.address);
+    fd.set("venue", values.venue);
+    fd.set("startDate", values.startDate);
+    fd.set("endDate", values.endDate);
+    fd.set("registrationDeadline", values.registrationDeadline);
+    fd.set("price", values.price);
+    fd.set("description", values.description);
+    fd.set("coverImage", values.coverImage);
+    fd.set("logoImage", values.logoImage);
+    fd.set("sectionsJson", JSON.stringify(values.sections));
+    fd.set("registrationType", values.registrationType);
+    fd.set("externalUrl", values.externalUrl);
+    fd.set("instagram", values.instagram);
+    fd.set("telegram", values.telegram);
+    fd.set("email", values.email);
     startTransition(() => formAction(fd));
   }
+
+  const hasErrors = Object.keys(fieldErrors).length > 0;
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {state?.message && !state.success && (
-        <p role="alert" className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600">
+        <p ref={errorBannerRef} role="alert" className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600">
           ❌ {state.message}
         </p>
       )}
-
-      <Card className="flex gap-3 bg-brand-50/60 p-5">
-        <Info size={18} className="mt-0.5 shrink-0 text-brand-600" />
-        <p className="text-sm text-muted">
-          Дату, стоимость и место проведения нельзя изменить здесь — они уже видны участникам. Чтобы
-          изменить эти данные, напишите нам через{" "}
-          <Link href="/contacts" className="font-medium text-brand-600 hover:text-brand-700">
-            форму поддержки
-          </Link>
-          .
+      {hasErrors && !state?.message && (
+        <p ref={errorBannerRef} role="alert" className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          Проверьте выделенные поля — есть ошибки заполнения.
         </p>
-      </Card>
+      )}
 
-      <Card className="p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-navy-900">Неизменяемые данные</h2>
-          <Badge tone="blue">{FORMAT_LABEL[tournament.format] ?? tournament.format}</Badge>
-        </div>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="flex items-start gap-2 text-sm">
-            <Calendar size={16} className="mt-0.5 shrink-0 text-muted" />
-            <div>
-              <dt className="text-muted">Дата начала</dt>
-              <dd className="font-medium text-ink">{formatDateRu(tournament.startDate)}</dd>
-            </div>
-          </div>
-          <div className="flex items-start gap-2 text-sm">
-            <Calendar size={16} className="mt-0.5 shrink-0 text-muted" />
-            <div>
-              <dt className="text-muted">Дедлайн регистрации</dt>
-              <dd className="font-medium text-ink">{formatDateRu(tournament.registrationDeadline)}</dd>
-            </div>
-          </div>
-          <div className="flex items-start gap-2 text-sm">
-            {tournament.locationType === "OFFLINE" ? (
-              <MapPin size={16} className="mt-0.5 shrink-0 text-muted" />
-            ) : (
-              <Globe2 size={16} className="mt-0.5 shrink-0 text-muted" />
-            )}
-            <div>
-              <dt className="text-muted">Место проведения</dt>
-              <dd className="font-medium text-ink">
-                {tournament.city ?? LOCATION_TYPE_LABEL[tournament.locationType] ?? "Онлайн"}
-              </dd>
-            </div>
-          </div>
-          <div className="flex items-start gap-2 text-sm">
-            <Wallet size={16} className="mt-0.5 shrink-0 text-muted" />
-            <div>
-              <dt className="text-muted">Стоимость участия</dt>
-              <dd className="font-medium text-ink">{formatPrice(tournament.price)}</dd>
-            </div>
-          </div>
-        </dl>
-      </Card>
+      <Section title="Основная информация">
+        <Step1BasicInfo values={values} errors={fieldErrors} update={update} />
+      </Section>
 
-      <Card className="p-6 sm:p-8">
-        <h2 className="text-lg font-bold text-navy-900">Описание и материалы</h2>
+      <Section title="Описание и разделы">
+        <Step2Content values={values} errors={fieldErrors} update={update} />
+      </Section>
 
-        <div className="mt-5">
-          <label htmlFor="description" className="text-sm font-medium text-ink">
-            Описание турнира <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative mt-1.5">
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={7}
-              placeholder="Расскажите об идее турнира, программе, целевой аудитории и других важных деталях…"
-              className="w-full rounded-[var(--radius-btn)] border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-              aria-invalid={Boolean(fieldErrors.description?.length)}
-              aria-describedby={fieldErrors.description?.length ? "description-error" : undefined}
-            />
-          </div>
-          <div className="mt-1.5 flex items-center justify-between">
-            <FieldError id="description-error" messages={fieldErrors.description} />
-            <span
-              className={`ml-auto text-xs ${description.trim().length < MIN_DESCRIPTION_LENGTH ? "text-muted" : "text-emerald-600"}`}
-            >
-              {description.length}/{MIN_DESCRIPTION_LENGTH} минимум
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-5 sm:grid-cols-[1fr_auto]">
-          <ImageUploadField
-            label="Обложка турнира"
-            shape="wide"
-            value={coverImage}
-            onChange={setCoverImage}
-            hint="JPEG, PNG или WebP, до 5 МБ. Показывается в карточке и на странице турнира."
-            errors={fieldErrors.coverImage}
-          />
-          <ImageUploadField
-            label="Логотип"
-            shape="square"
-            value={logoImage}
-            onChange={setLogoImage}
-            errors={fieldErrors.logoImage}
-          />
-        </div>
-
-        <div className="mt-6">
-          <SectionsEditor sections={sections} onChange={setSections} errors={fieldErrors.sections} />
-        </div>
-      </Card>
+      <Section title="Контакты и регистрация">
+        <Step3Contacts values={values} errors={fieldErrors} update={update} />
+      </Section>
 
       <Button type="submit" size="lg" className="w-full justify-center" disabled={pending}>
-        {pending ? (
-          "Сохраняем…"
-        ) : (
-          <>
-            <Save size={18} /> Сохранить изменения
-          </>
-        )}
+        {pending ? "Сохраняем…" : <><Save size={18} /> Сохранить изменения</>}
       </Button>
+
+      <DangerZone tournamentId={tournament.id} />
     </form>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card className="p-6 sm:p-8">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+          <ClipboardCheck size={18} />
+        </div>
+        <h2 className="text-lg font-bold text-navy-900">{title}</h2>
+      </div>
+      <div className="mt-6">{children}</div>
+    </Card>
+  );
+}
+
+/**
+ * Опасная зона — отмена (мягкое удаление) турнира. Инлайн-подтверждение
+ * (никаких нативных confirm — паттерн UserRow); при успехе уводим на «Мои
+ * турниры».
+ */
+function DangerZone({ tournamentId }: { tournamentId: string }) {
+  const router = useRouter();
+  const [confirm, setConfirm] = useState(false);
+  const [pending, startDelete] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  function handleDelete() {
+    setError(null);
+    startDelete(async () => {
+      const result = await deleteOwnTournament(tournamentId);
+      if (!result.ok) {
+        setError(result.error);
+        setConfirm(false);
+        return;
+      }
+      router.push("/profile?tab=tournaments");
+      router.refresh();
+    });
+  }
+
+  return (
+    <Card className="border-rose-200 bg-rose-50/40 p-6 sm:p-8">
+      <div className="flex items-start gap-3">
+        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rose-500" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-bold text-navy-900">Отмена турнира</h2>
+          <p className="mt-1 text-sm text-muted">
+            Турнир будет снят с публикации и скрыт из каталога. Зарегистрированные участники получат
+            уведомление об отмене. Это действие нельзя отменить.
+          </p>
+
+          {error && (
+            <p role="alert" className="mt-3 text-sm text-rose-600">
+              {error}
+            </p>
+          )}
+
+          {confirm ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-rose-300 text-rose-600 hover:border-rose-400 hover:text-rose-700"
+                onClick={handleDelete}
+                disabled={pending}
+              >
+                {pending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                Да, отменить турнир
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setConfirm(false);
+                  triggerRef.current?.focus();
+                }}
+                disabled={pending}
+              >
+                Не отменять
+              </Button>
+            </div>
+          ) : (
+            <Button
+              ref={triggerRef}
+              type="button"
+              variant="outline"
+              className="mt-4 border-rose-300 text-rose-600 hover:border-rose-400 hover:text-rose-700"
+              onClick={() => setConfirm(true)}
+            >
+              <Trash2 size={16} /> Отменить турнир
+            </Button>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarSearch, Heart, ShieldAlert, Info, Plus, Trophy } from "lucide-react";
+import { ArrowRight, CalendarSearch, Heart, ShieldAlert, Plus, Trophy } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { RegistrationRow } from "@/components/profile/registration-row";
 import { CancelRegistrationButton } from "@/components/profile/cancel-registration-button";
 import { NotificationsPanel } from "@/components/profile/notifications-panel";
 import { MyTournamentRow } from "@/components/profile/my-tournament-row";
+import { SettingsForm } from "@/components/profile/settings-form";
+import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { requireUser } from "@/lib/auth/session";
 import { getProfileDashboard, getMyRegistrations } from "@/lib/profile/queries";
 import { listMyTournaments, type MyTournamentItem } from "@/lib/tournaments/queries";
@@ -410,31 +412,36 @@ function SettingsTab({
   profileFields,
 }: {
   user: { firstName: string; lastName: string; email: string; role: string };
-  profileFields: { phone: string | null; city: string | null } | null;
+  profileFields: {
+    phone: string | null;
+    city: string | null;
+    bio: string | null;
+    school: string | null;
+    major: string | null;
+    experience: string | null;
+    level: string | null;
+    languages: string | null;
+  } | null;
 }) {
+  const initial = {
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    phone: profileFields?.phone ?? "",
+    city: profileFields?.city ?? "",
+    school: profileFields?.school ?? "",
+    major: profileFields?.major ?? "",
+    experience: profileFields?.experience ?? "",
+    bio: profileFields?.bio ?? "",
+    level: profileFields?.level ?? "",
+    languages: profileFields?.languages ?? "",
+  };
+
   return (
     <div className="space-y-6">
-      <Card className="p-6 sm:p-8">
-        <h2 className="text-lg font-bold text-navy-900">Личная информация</h2>
-        <dl className="mt-4 space-y-3 text-sm">
-          <Row label="Имя" value={`${user.firstName} ${user.lastName}`} />
-          <Row label="Email" value={user.email} />
-          <Row label="Телефон" value={profileFields?.phone ?? "—"} />
-          <Row label="Город" value={profileFields?.city ?? "—"} />
-        </dl>
-      </Card>
+      <SettingsForm initial={initial} />
 
-      <Card className="flex gap-3 bg-brand-50/60 p-5">
-        <Info size={18} className="mt-0.5 shrink-0 text-brand-600" />
-        <p className="text-sm text-muted">
-          Редактирование личных данных и смена пароля появятся в следующих обновлениях личного
-          кабинета. Если нужно срочно изменить данные — напишите в{" "}
-          <Link href="/contacts" className="font-medium text-brand-600 hover:text-brand-700">
-            поддержку
-          </Link>
-          .
-        </p>
-      </Card>
+      <ChangePasswordForm />
 
       {user.role !== "ADMIN" && (
         <Card className="flex gap-3 p-5">

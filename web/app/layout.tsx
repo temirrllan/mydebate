@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getUnreadNotificationCount } from "@/lib/profile/queries";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,6 +31,11 @@ export default async function RootLayout({
   // чтобы шапка была session-aware на каждой странице (см. задачу Этапа 3).
   const user = await getCurrentUser();
 
+  // Счётчик непрочитанных уведомлений для колокольчика в шапке — чтобы
+  // пользователь видел новое, не заходя в кабинет. Считаем только для
+  // авторизованного (у гостя уведомлений нет).
+  const unreadNotifications = user ? await getUnreadNotificationCount(user.id) : 0;
+
   return (
     <html lang="ru" className={`${inter.variable} h-full`} data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col bg-canvas text-ink antialiased">
@@ -39,7 +45,7 @@ export default async function RootLayout({
         >
           Перейти к содержимому
         </a>
-        <Navbar user={user} />
+        <Navbar user={user} unreadNotifications={unreadNotifications} />
         <main id="main" className="flex-1">
           {children}
         </main>

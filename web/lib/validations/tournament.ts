@@ -92,6 +92,10 @@ function validateStep1Cross(
     registrationDeadline: Date;
   },
   ctx: z.RefinementCtx,
+  // При редактировании существующего турнира дедлайн может быть уже в прошлом
+  // (турнир идёт/завершён, организатор правит описание) — тогда проверку
+  // "не в прошлом" пропускаем. При создании она обязательна.
+  opts: { allowPastDeadline?: boolean } = {},
 ) {
   if (data.locationType === LocationType.OFFLINE && !data.city?.trim()) {
     ctx.addIssue({ code: "custom", message: "Укажите город проведения", path: ["city"] });
@@ -113,7 +117,7 @@ function validateStep1Cross(
     });
   }
 
-  if (data.registrationDeadline.getTime() < startOfTodayUTC().getTime()) {
+  if (!opts.allowPastDeadline && data.registrationDeadline.getTime() < startOfTodayUTC().getTime()) {
     ctx.addIssue({
       code: "custom",
       message: "Дедлайн регистрации не может быть в прошлом",
@@ -122,8 +126,15 @@ function validateStep1Cross(
   }
 }
 
-export const step1Schema = step1BaseSchema.superRefine(validateStep1Cross);
+export const step1Schema = step1BaseSchema.superRefine((data, ctx) =>
+  validateStep1Cross(data, ctx),
+);
 export type Step1Input = z.infer<typeof step1Schema>;
+
+/** Шаг 1 при редактировании — как step1Schema, но дедлайн может быть в прошлом. */
+export const editStep1Schema = step1BaseSchema.superRefine((data, ctx) =>
+  validateStep1Cross(data, ctx, { allowPastDeadline: true }),
+);
 
 // ---------------------------------------------------------------------------
 // Шаг 2 — описание и разделы
@@ -219,3 +230,15 @@ export const createTournamentSchema = createTournamentBaseSchema.superRefine((da
 });
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
+
+/**
+ * Полная схема при РЕДАКТИРОВАНИИ турнира организатором. Идентична
+ * createTournamentSchema, но допускает дедлайн в прошлом (см. editStep1Schema)
+ * — организатор может править уже идущий/завершённый турнир.
+ */
+export const editTournamentSchema = createTournamentBaseSchema.superRefine((data, ctx) => {
+  validateStep1Cross(data, ctx, { allowPastDeadline: true });
+  validateStep3Cross(data, ctx);
+});
+
+export type EditTournamentInput = z.infer<typeof editTournamentSchema>;

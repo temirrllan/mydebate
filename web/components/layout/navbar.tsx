@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, LogOut, ShieldCheck } from "lucide-react";
+import { Menu, X, LogOut, ShieldCheck, Bell } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { Logo } from "./logo";
@@ -25,7 +25,33 @@ const NAV = [
 // то, что получил (spec: "session-aware navbar", баг Этапа 2 исправлен здесь).
 type NavbarProps = {
   user: CurrentUser | null;
+  /** Непрочитанные уведомления — счётчик на колокольчике (0 = бейдж скрыт). */
+  unreadNotifications?: number;
 };
+
+/** Колокольчик уведомлений со счётчиком непрочитанных (ведёт в кабинет). */
+function NotificationBell({ count, onClick }: { count: number; onClick?: () => void }) {
+  const label =
+    count > 0 ? `Уведомления: ${count} непрочитанных` : "Уведомления";
+  return (
+    <Link
+      href="/profile?tab=notifications"
+      onClick={onClick}
+      aria-label={label}
+      className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-brand-50 hover:text-brand-700"
+    >
+      <Bell size={19} />
+      {count > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute right-1 top-1 flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-[16px] text-white"
+        >
+          {count > 9 ? "9+" : count}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 function Avatar({ user }: { user: CurrentUser }) {
   const initials = `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase();
@@ -49,7 +75,7 @@ function Avatar({ user }: { user: CurrentUser }) {
 
 const MOBILE_MENU_ID = "mobile-nav-menu";
 
-export function Navbar({ user }: NavbarProps) {
+export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const burgerRef = useRef<HTMLButtonElement>(null);
@@ -113,6 +139,7 @@ export function Navbar({ user }: NavbarProps) {
                   </Link>
                 </Button>
               )}
+              <NotificationBell count={unreadNotifications} />
               <Button asChild variant="ghost" size="sm">
                 <Link href="/profile">
                   <Avatar user={user} />
@@ -189,6 +216,17 @@ export function Navbar({ user }: NavbarProps) {
                       </Link>
                     </Button>
                   )}
+                  <Button asChild variant="ghost">
+                    <Link href="/profile?tab=notifications" onClick={closeMenu}>
+                      <Bell size={16} />
+                      Уведомления
+                      {unreadNotifications > 0 && (
+                        <span className="ml-auto flex min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
+                          {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                        </span>
+                      )}
+                    </Link>
+                  </Button>
                   <Button asChild variant="ghost">
                     <Link href="/profile" onClick={closeMenu}>
                       <Avatar user={user} />

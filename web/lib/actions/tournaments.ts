@@ -24,7 +24,7 @@ import {
   Role,
   formatLanguages,
 } from "@/lib/enums";
-import { createTournamentSchema, step2Schema } from "@/lib/validations/tournament";
+import { createTournamentSchema, editTournamentSchema } from "@/lib/validations/tournament";
 import { EDIT_TOURNAMENT_SUCCESS_MESSAGE } from "@/lib/format";
 import { createNotification } from "@/lib/notifications/create";
 
@@ -235,22 +235,16 @@ export type EditTournamentActionState =
   | undefined;
 
 /**
- * Редактирование описания/обложки/логотипа/разделов турнира. Рассчитана на
- * `useActionState`, привязывается к турниру через `.bind(null, tournamentId)`
- * (тот же паттерн, что и registerForTournament в lib/actions/registrations.ts).
+ * Полное редактирование турнира организатором (или админом любого турнира).
+ * Рассчитана на `useActionState`, привязывается к турниру через
+ * `.bind(null, tournamentId)` (тот же паттерн, что и registerForTournament).
  *
- * Разрешено менять ТОЛЬКО description/coverImage/logoImage/sections — дата,
- * цена, формат, место и любые другие поля из этой формы НЕ читаются и НЕ
- * трогаются, даже если клиент их пришлёт (immutability enforced server-side,
- * never trust the client). status тоже не меняется — правки уже
- * опубликованного турнира НЕ уходят на повторную модерацию (spec: "no
- * re-moderation").
- *
- * Контракт FormData — тот же, что и у createTournament (см. её шапку):
- * description, coverImage, logoImage — обычные строковые поля;
- * sectionsJson — JSON-строка `[{ "title": "...", "description": "..." }, ...]`,
- * ПОЛНАЯ замена набора разделов (старые удаляются, новые создаются с order =
- * индекс в массиве).
+ * Организатор может менять ВСЕ поля своего турнира — основную информацию,
+ * даты/цену/место, описание/обложку/разделы, контакты и способ регистрации
+ * (по решению заказчика прежнее ограничение «только описание, даты/цена/место
+ * через поддержку» снято). Контракт FormData полностью совпадает с
+ * createTournament (см. её шапку). status НЕ меняется — правки уже
+ * опубликованного турнира не уходят на повторную модерацию.
  */
 export async function editTournament(
   tournamentId: string,
@@ -286,13 +280,30 @@ export async function editTournament(
   }
 
   const raw = {
+    title: formData.get("title"),
+    format: formData.get("format"),
+    locationType: formData.get("locationType"),
+    level: formData.get("level") ?? "",
+    languages: formData.getAll("languages").map((v) => String(v)),
+    city: formData.get("city") ?? "",
+    address: formData.get("address") ?? "",
+    venue: formData.get("venue") ?? "",
+    startDate: formData.get("startDate"),
+    endDate: formData.get("endDate") ?? "",
+    registrationDeadline: formData.get("registrationDeadline"),
+    price: formData.get("price"),
     description: formData.get("description"),
     coverImage: formData.get("coverImage") ?? "",
     logoImage: formData.get("logoImage") ?? "",
     sections,
+    registrationType: formData.get("registrationType"),
+    externalUrl: formData.get("externalUrl") ?? "",
+    instagram: formData.get("instagram") ?? "",
+    telegram: formData.get("telegram") ?? "",
+    email: formData.get("email") ?? "",
   };
 
-  const parsed = step2Schema.safeParse(raw);
+  const parsed = editTournamentSchema.safeParse(raw);
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
   }
@@ -307,9 +318,28 @@ export async function editTournament(
       prisma.tournament.update({
         where: { id: tournamentId },
         data: {
+          title: data.title,
           description: data.description,
+          format: data.format,
+          locationType: data.locationType,
+          level: data.level || null,
+          languages: formatLanguages(data.languages),
+          startDate: data.startDate,
+          endDate: data.endDate ?? null,
+          registrationDeadline: data.registrationDeadline,
+          price: data.price,
+          city: data.city || null,
+          address: data.address || null,
+          venue: data.venue || null,
           coverImage: data.coverImage || null,
           logoImage: data.logoImage || null,
+          registrationType: data.registrationType,
+          externalUrl:
+            data.registrationType === RegistrationType.EXTERNAL ? data.externalUrl || null : null,
+          instagram: data.instagram || null,
+          telegram: data.telegram || null,
+          email: data.email || null,
+          // status НЕ трогаем — без повторной модерации.
           sections: {
             create: (data.sections ?? []).map((s, index) => ({
               title: s.title,
@@ -317,8 +347,6 @@ export async function editTournament(
               order: index,
             })),
           },
-          // Дата/цена/формат/место/статус намеренно не в data{} — их здесь
-          // просто нет, чтобы случайно не задеть при рефакторинге.
         },
       }),
     ]);
@@ -357,4 +385,69 @@ export async function editTournament(
   revalidatePath("/profile");
 
   return { success: true, tournamentId, message: EDIT_TOURNAMENT_SUCCESS_MESSAGE };
+}
+
+export type DeleteOwnTournamentResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Отмена (мягкое удаление) СВОЕГО турнира организатором. Как и админский
+ * deleteTournament, переводит статус в DELETED (не физическое удаление — так
+ * сохраняются регистрации/история и ничего не «пропадает» из связей). Только
+ * владелец или админ; для остальных общий «не найден».
+ *
+ * Зарегистрированные участники PUBLISHED-турнира уведомляются об отмене
+ * (spec §7 Notifications). Возвращаем структурный результат для инлайн-
+ * подтверждения на клиенте (не редирект), как cancelRegistration.
+ */
+export async function deleteOwnTournament(
+  tournamentId: string,
+): Promise<DeleteOwnTournamentResult> {
+  const user = await requireUser();
+  const isAdmin = user.role === Role.ADMIN;
+
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { id: true, organizerId: true, status: true, title: true },
+  });
+
+  if (!tournament || (!isAdmin && tournament.organizerId !== user.id)) {
+    return { ok: false, error: "Турнир не найден." };
+  }
+  if (tournament.status === TournamentStatus.DELETED) {
+    return { ok: false, error: "Турнир уже удалён." };
+  }
+
+  await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { status: TournamentStatus.DELETED },
+  });
+
+  // Критическое действие — логируем (spec §11: "delete tournament").
+  console.log(`[tournaments] user=${user.id} отменил (удалил) турнир=${tournamentId}`);
+
+  // Уведомляем зарегистрированных участников об отмене — только если турнир
+  // был опубликован и на него могли подать заявки.
+  if (tournament.status === TournamentStatus.PUBLISHED) {
+    const registrations = await prisma.registration.findMany({
+      where: { tournamentId },
+      select: { userId: true },
+    });
+    await Promise.all(
+      registrations.map((r) =>
+        createNotification({
+          userId: r.userId,
+          type: NotificationType.TOURNAMENT_DELETED,
+          title: "Турнир отменён",
+          message: `Организатор отменил турнир «${tournament.title}». Приносим извинения за неудобства.`,
+          link: "/tournaments",
+        }),
+      ),
+    );
+  }
+
+  revalidatePath("/tournaments");
+  revalidatePath(`/tournaments/${tournamentId}`);
+  revalidatePath("/profile");
+
+  return { ok: true };
 }
