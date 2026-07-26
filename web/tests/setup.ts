@@ -1,9 +1,13 @@
 import { vi } from "vitest";
 
-// Каждый тест обязан работать с тестовой базой, а не с dev.db. Переменную
-// выставляем ДО того, как какой-либо модуль импортирует lib/prisma (клиент
-// читает DATABASE_URL при создании и кэширует его).
-process.env.DATABASE_URL = "file:./test.db";
+// Каждый тест обязан работать с отдельной тестовой базой, а не с рабочей
+// mydebate. Переменную выставляем ДО того, как какой-либо модуль импортирует
+// lib/prisma (клиент читает DATABASE_URL при создании и кэширует его).
+// Тестовая БД — своя PostgreSQL-база mydebate_test (создаётся/пересоздаётся в
+// global-setup); можно переопределить через TEST_DATABASE_URL (напр. в CI).
+process.env.DATABASE_URL =
+  process.env.TEST_DATABASE_URL ??
+  "postgresql://temirlanraiymbek@localhost:5432/mydebate_test?schema=public";
 process.env.AUTH_SECRET ??= "test-secret";
 
 // Кэш-хелперы Next вне запроса Next не работают — в тестах они не важны.
