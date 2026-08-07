@@ -7,6 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { TournamentStatus } from "@/lib/enums";
@@ -42,14 +43,32 @@ export async function toggleFavorite(tournamentId: string): Promise<ToggleFavori
   });
 
   if (existing) {
-    await prisma.favorite.delete({ where: { id: existing.id } });
+    // delete по id идемпотентен относительно гонки: если запись уже удалил
+    // параллельный запрос, ловим P2025 ("не найдено") и считаем задачу
+    // выполненной (итог тот же — избранного нет).
+    try {
+      await prisma.favorite.delete({ where: { id: existing.id } });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025")) {
+        throw error;
+      }
+    }
     revalidatePath(`/tournaments/${tournamentId}`);
     revalidatePath("/tournaments");
     revalidatePath("/profile");
     return { ok: true, favorited: false };
   }
 
-  await prisma.favorite.create({ data: { userId: user.id, tournamentId } });
+  try {
+    await prisma.favorite.create({ data: { userId: user.id, tournamentId } });
+  } catch (error) {
+    // Гонка двух «добавить» одновременно: уникальный индекс
+    // @@unique([userId, tournamentId]) поймал дубликат — запись уже есть,
+    // итог тот же (турнир в избранном), не ошибка для пользователя.
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) {
+      throw error;
+    }
+  }
   revalidatePath(`/tournaments/${tournamentId}`);
   revalidatePath("/tournaments");
   revalidatePath("/profile");

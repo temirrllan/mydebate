@@ -1,19 +1,27 @@
+"use client";
+
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { signInWithGoogle } from "@/lib/actions/auth";
 
 /**
- * Кнопка "Войти/Зарегистрироваться через Google" — присутствует визуально по
- * макету, но disabled: Google OAuth провайдер пока не подключён (Этап 2
- * задача — "Google OAuth пока заглушён"). Включится, когда появится
- * провайдер Google в auth.ts + AUTH_GOOGLE_ID/AUTH_GOOGLE_SECRET в .env.
+ * Кнопка «Войти/Зарегистрироваться через Google». По клику вызывает серверный
+ * экшен signInWithGoogle, который запускает OAuth-редирект на Google (auth.ts,
+ * провайдер Google). onClick, а НЕ вложенный <form>: кнопка живёт внутри форм
+ * входа/регистрации, а вложенные формы недопустимы (ломают гидрацию).
+ * callbackUrl — куда вернуть после входа (по умолчанию /profile; проверку
+ * «только внутренний путь» делает сам экшен).
  */
-export function GoogleButton({ label }: { label: string }) {
+export function GoogleButton({ label, callbackUrl }: { label: string; callbackUrl?: string }) {
+  const [pending, startTransition] = useTransition();
+
   return (
     <Button
       type="button"
       variant="outline"
-      disabled
-      title="Вход через Google пока недоступен"
-      className="w-full justify-center gap-2.5 text-ink disabled:opacity-60"
+      disabled={pending}
+      onClick={() => startTransition(() => signInWithGoogle(callbackUrl))}
+      className="w-full justify-center gap-2.5 text-ink"
     >
       <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden="true">
         <path
@@ -33,7 +41,7 @@ export function GoogleButton({ label }: { label: string }) {
           d="M12 4.75c1.76 0 3.35.61 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.59l4.02 3.1C6.23 6.86 8.88 4.75 12 4.75Z"
         />
       </svg>
-      {label}
+      {pending ? "Переходим в Google…" : label}
     </Button>
   );
 }

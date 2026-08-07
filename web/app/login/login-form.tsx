@@ -47,7 +47,7 @@ export function LoginForm({
         </p>
       )}
 
-      <GoogleButton label="Войти через Google" />
+      <GoogleButton label="Войти через Google" callbackUrl={callbackUrl} />
 
       <OrDivider />
 

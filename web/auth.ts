@@ -13,11 +13,34 @@
 // для расширения типов Session/JWT.
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/lib/enums";
 import { loginSchema } from "@/lib/validations/auth";
+
+/**
+ * Имя/фамилия из Google-профиля: предпочитаем структурированные given_name/
+ * family_name; если их нет — делим полное имя по первому пробелу. Пустая
+ * фамилия допустима (в БД поле обязательное, поэтому подставляем пробел-фолбэк
+ * на пустую строку невозможно — кладём то, что есть, а lastName минимум "").
+ */
+function splitGoogleName(
+  fullName: string | null | undefined,
+  profile: { given_name?: string; family_name?: string } | undefined,
+): { firstName: string; lastName: string } {
+  const given = profile?.given_name?.trim();
+  const family = profile?.family_name?.trim();
+  if (given || family) {
+    return { firstName: given || family || "Пользователь", lastName: family && given ? family : "" };
+  }
+  const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "Пользователь",
+    lastName: parts.slice(1).join(" ") || "",
+  };
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -27,6 +50,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   providers: [
+    // Google OAuth. Client ID/Secret берутся из AUTH_GOOGLE_ID/
+    // AUTH_GOOGLE_SECRET (env) автоматически по конвенции Auth.js v5.
+    Google({
+      // Разрешаем связывание с существующим аккаунтом по email: Google уже
+      // подтвердил владение почтой, поэтому вход через Google в аккаунт с тем
+      // же email, что был заведён по паролю, безопасен (см. также signIn callback).
+      allowDangerousEmailAccountLinking: true,
+    }),
     Credentials({
       name: "credentials",
       credentials: {
@@ -68,11 +99,67 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      // `user` присутствует только сразу после успешного signIn.
+    /**
+     * Google-вход: гарантируем, что в НАШЕЙ таблице User есть строка для этого
+     * email (без адаптера NextAuth сам её не создаёт). Первый вход — создаём
+     * пользователя из Google-профиля (без пароля), повторный — находим по
+     * email. Заблокированного не пускаем. Credentials-вход сюда тоже заходит,
+     * но там всё уже проверено в authorize() — просто пропускаем.
+     */
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google") return true;
+
+      const email = user.email?.toLowerCase();
+      if (!email) return false;
+
+      const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing) {
+        if (existing.isBlocked) return false;
+        // Подтягиваем аватар из Google, если у нас его ещё нет.
+        if (!existing.image && user.image) {
+          await prisma.user.update({ where: { id: existing.id }, data: { image: user.image } });
+        }
+        return true;
+      }
+
+      const { firstName, lastName } = splitGoogleName(
+        user.name,
+        profile as { given_name?: string; family_name?: string } | undefined,
+      );
+      await prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          image: user.image ?? null,
+          emailVerified: new Date(), // email подтверждён Google
+          role: Role.USER,
+          // passwordHash не задаём — это OAuth-аккаунт без пароля.
+        },
+      });
+      console.log(`[auth] Регистрация через Google: ${email}`);
+      return true;
+    },
+
+    async jwt({ token, user, account }) {
+      // `user`/`account` присутствуют только сразу после успешного signIn.
       if (user) {
-        token.id = user.id as string;
-        token.role = (user as { role?: string }).role ?? Role.USER;
+        if (account?.provider === "google") {
+          // user.id здесь — это Google sub, а не наш cuid. Достаём наш
+          // внутренний id и роль по email (строка гарантированно есть после
+          // signIn callback выше).
+          const dbUser = await prisma.user.findUnique({
+            where: { email: (user.email ?? "").toLowerCase() },
+            select: { id: true, role: true },
+          });
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.role = dbUser.role;
+          }
+        } else {
+          token.id = user.id as string;
+          token.role = (user as { role?: string }).role ?? Role.USER;
+        }
       }
       return token;
     },
