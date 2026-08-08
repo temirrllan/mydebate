@@ -26,6 +26,47 @@ function layout(bodyHtml: string): string {
 </body></html>`;
 }
 
+/** Абсолютный базовый URL для ссылок в письмах (в письме относительный путь бесполезен). */
+function baseUrl(): string {
+  return process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+}
+
+/** HTML-экранирование пользовательского текста (название турнира, имя и т.п.), попадающего в письмо. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Универсальное письмо-уведомление — email-дубль in-app уведомления
+ * (createNotification). title/message приходят из события (модерация,
+ * статус заявки, новый участник и т.п.); link — относительный путь внутри
+ * приложения, превращаем в абсолютный и вешаем кнопку «Открыть».
+ */
+export async function sendNotificationEmail(
+  to: string,
+  input: { title: string; message: string; link?: string | null },
+): Promise<boolean> {
+  const url = input.link ? `${baseUrl()}${input.link}` : null;
+
+  const html = layout(`
+    <h1 style="margin:0 0 12px;font-size:20px;font-weight:800;color:${INK};">${escapeHtml(input.title)}</h1>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:${MUTED};">${escapeHtml(input.message)}</p>
+    ${
+      url
+        ? `<a href="${url}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:10px;">Открыть на сайте</a>`
+        : ""
+    }
+  `);
+
+  const text = [input.title, "", input.message, ...(url ? ["", url] : [])].join("\n");
+
+  return sendEmail({ to, subject: `${input.title} — MyDebate`, html, text });
+}
+
 /**
  * Письмо сброса пароля. Ссылка действует 1 час (см. requestPasswordReset).
  * Отправляем и HTML, и текстовую версию (для клиентов без HTML и антиспама).
