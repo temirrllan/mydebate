@@ -18,10 +18,23 @@
 // Контракт: POST multipart/form-data с полем "file" -> 200 { url: string }.
 // Ошибка -> { error: string } с соответствующим HTTP-статусом; тексты
 // ошибок пользователе-безопасны (spec §11).
+//
+// Куда пишем файл — зависит от окружения:
+//   * задан BLOB_READ_WRITE_TOKEN -> Vercel Blob, возвращаем абсолютный URL
+//     вида https://<store>.public.blob.vercel-storage.com/tournaments/<uuid>.jpg;
+//   * токена нет (локальная разработка, self-hosted с диском) -> пишем в
+//     public/uploads/tournaments и возвращаем относительный путь.
+// Причина: на Vercel файловая система инстанса доступна только на чтение
+// (кроме /tmp) и живёт до конца запроса, так что записанная обложка
+// потерялась бы. Оба варианта отдают URL, который переваривает next/image —
+// хост Blob разрешён в next.config.ts (remotePatterns), а относительный путь
+// проверок не требует. Допустимые формы URL продублированы в
+// lib/validations/tournament.ts (imageUrlSchema) — держите в синхронизации.
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 
@@ -31,6 +44,13 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+};
+
+/** MIME-тип по расширению, определённому из сигнатуры файла (см. detectImageExtension). */
+const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
 };
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "tournaments");
@@ -117,9 +137,21 @@ export async function POST(request: Request) {
 
   const filename = `${randomUUID()}.${extension}`;
 
+  let url: string;
   try {
-    await mkdir(UPLOAD_DIR, { recursive: true });
-    await writeFile(path.join(UPLOAD_DIR, filename), bytes);
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      // addRandomSuffix по умолчанию false, а имя у нас и так уникальное (uuid),
+      // поэтому путь в хранилище совпадает с тем, что мы попросили.
+      const blob = await put(`tournaments/${filename}`, bytes, {
+        access: "public",
+        contentType: CONTENT_TYPE_BY_EXTENSION[extension],
+      });
+      url = blob.url;
+    } else {
+      await mkdir(UPLOAD_DIR, { recursive: true });
+      await writeFile(path.join(UPLOAD_DIR, filename), bytes);
+      url = `/uploads/tournaments/${filename}`;
+    }
   } catch (error) {
     console.error("[uploads] Не удалось сохранить файл:", error);
     return NextResponse.json({ error: "Что-то пошло не так. Попробуйте позже." }, { status: 500 });
@@ -127,5 +159,5 @@ export async function POST(request: Request) {
 
   console.log(`[uploads] user=${user.id} загрузил изображение турнира: ${filename}`);
 
-  return NextResponse.json({ url: `/uploads/tournaments/${filename}` });
+  return NextResponse.json({ url });
 }

@@ -146,17 +146,40 @@ const sectionSchema = z.object({
 });
 export type TournamentSectionInput = z.infer<typeof sectionSchema>;
 
+/**
+ * Ссылка на картинку турнира. Принимаем РОВНО те две формы, которые может
+ * вернуть наш загрузчик (app/api/uploads/tournament-image/route.ts):
+ *   * "/uploads/tournaments/<uuid>.<ext>" — локальный/self-hosted режим;
+ *   * "https://<store>.public.blob.vercel-storage.com/tournaments/<uuid>.<ext>" — Vercel Blob.
+ *
+ * Проверка обязательна, а не косметическая: значение приходит из formData
+ * (lib/actions/tournaments.ts), то есть подделывается любым POST'ом в обход
+ * формы, сохраняется в БД и подставляется в next/image (app/tournaments/[id]/
+ * page.tsx, components/tournaments/tournament-card.tsx). next/image бросает
+ * ошибку на хосте, которого нет в remotePatterns, — то есть чужой URL в этом
+ * поле уронил бы страницу турнира и весь каталог для ВСЕХ посетителей, а не
+ * только для автора. Строгий whitelist закрывает заодно и javascript:/data:.
+ */
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .refine(
+    (val) =>
+      !val ||
+      /^\/uploads\/tournaments\/[A-Za-z0-9._-]+$/.test(val) ||
+      /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/[A-Za-z0-9/._-]+$/.test(val),
+    { error: "Некорректная ссылка на изображение" },
+  );
+
 const step2BaseSchema = z.object({
   description: z
     .string()
     .trim()
     .min(50, { error: "Описание должно содержать не менее 50 символов" })
     .max(10000),
-  // Публичные пути вида "/uploads/tournaments/xxx.jpg", отдаваемые Route
-  // Handler'ом загрузки (app/api/uploads/tournament-image/route.ts) — не
-  // полноценный URL, поэтому без z.url().
-  coverImage: z.string().trim().max(500).optional().or(z.literal("")),
-  logoImage: z.string().trim().max(500).optional().or(z.literal("")),
+  coverImage: imageUrlSchema.optional().or(z.literal("")),
+  logoImage: imageUrlSchema.optional().or(z.literal("")),
   sections: z.array(sectionSchema).max(20, { error: "Не более 20 разделов" }).optional(),
 });
 

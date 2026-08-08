@@ -379,3 +379,33 @@
 - Фича 3: создал «Тест Тестов / Организатор» → зелёный баннер успеха + строка в списке (потом удалил). ✅
 - `npm run build` + `npm run lint` — зелёные (0 ошибок, только 6 старых warning в seed.ts). Консоль чистая. `requireAdmin`/`requireUser` на месте, чужие турниры не палятся не-админам.
 - БД после тестов **пересеяна** в чистое демо (3 юзера, 11 турниров, 1 обращение).
+
+---
+
+## 2026-08-09 — Подготовка к деплою: шаг 1 (правки в коде)
+
+#done #deploy
+
+Полный план развёртывания — [[deploy]]. Здесь только то, что сделано в коде.
+
+### Блокеры деплоя (каждый ронял бы прод)
+- **Prisma Client не собрался бы на чистой машине.** `generated/prisma` в `.gitignore`, но `prisma generate` нигде не вызывался — на CI/Vercel сборка падала бы на `import "@/generated/prisma/client"`. В `package.json`: `build: "prisma generate && next build"` + `postinstall: "prisma generate"`.
+- **Загрузка картинок писалась на локальный диск.** `app/api/uploads/tournament-image/route.ts` → `public/uploads/tournaments`; на Vercel ФС read-only (кроме `/tmp`) и эфемерна, обложки пропадали бы. Теперь двухрежимно: есть `BLOB_READ_WRITE_TOKEN` → Vercel Blob (абсолютный URL), нет → прежняя запись на диск (локалка и self-hosted с постоянным диском). Хост Blob (`*.public.blob.vercel-storage.com`) добавлен в `remotePatterns` (`next.config.ts`). Пакет `@vercel/blob@2.7.0`.
+- **NextAuth за прокси.** `trustHost: true` в `auth.ts` — без него любой вход на проде падает с `UntrustedHost` (настоящий домен приходит в `X-Forwarded-Host`).
+- **Конфликт peer-зависимостей.** `nodemailer@9` против `peerOptional ^7 || ^8` у next-auth: `npm ci` по lock-файлу проходил, но любой `npm install <пакет>` падал с ERESOLVE (на этом и споткнулась установка `@vercel/blob`). Закрыто через `web/.npmrc` (`legacy-peer-deps=true`), чтобы локалка, CI и Vercel вели себя одинаково. Версию nodemailer НЕ откатывал: её подняли ради закрытия уязвимости (коммит `e1f619f`), а next-auth тянет её только для неиспользуемого провайдера Nodemailer.
+
+### 🐛 Найденный по дороге баг: подделка ссылки на обложку роняет каталог
+`coverImage`/`logoImage` валидировались как произвольная строка ≤500 символов, хотя приходят из `formData` (то есть подделываются POST'ом в обход формы), сохраняются в БД и подставляются в `next/image`. А `next/image` бросает исключение на хосте, которого нет в `remotePatterns` — то есть чужой URL в этом поле уронил бы страницу турнира и каталог **для всех посетителей**, не только для автора.
+- `lib/validations/tournament.ts` → `imageUrlSchema`: строгий whitelist ровно из двух форм, которые может вернуть наш загрузчик (локальный путь `/uploads/tournaments/<uuid>.<ext>` и URL Vercel Blob). Заодно отсекает `javascript:`/`data:` и обход каталога.
+- `tests/image-url-validation.test.ts` — 9 кейсов на границу (валидные формы + чужой хост, `javascript:`, `data:`, `../`, `http` вместо `https`, хост-двойник `...vercel-storage.com.evil.com`, превышение длины).
+
+### Попутно
+- `prisma.config.ts` берёт `DIRECT_URL ?? DATABASE_URL` — миграции не проходят через pgbouncer в transaction-режиме, а рантайму нужен именно пулер.
+- Появился `web/.env.example` со всеми переменными и пояснениями; в `.gitignore` добавлено исключение `!.env.example`.
+- Удалены пустые папки-мусор в корне репозитория: `config`, `prefix`, `set`, `export PATH=~` (следы сорвавшейся `npm config set prefix`).
+
+### Проверка
+- `rm -rf .next generated && npm run build` — зелёный (Prisma Client сгенерировался с нуля).
+- `npm run lint` — 0 ошибок. `npx tsc --noEmit` — 0 ошибок.
+- `npm test` — 38 тестов в 5 файлах, все зелёные.
+- Прод-развёртывания ещё НЕ было: база, домен, Blob-стор и переменные окружения — шаги 2–5 в [[deploy]].

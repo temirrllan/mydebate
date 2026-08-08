@@ -10,6 +10,12 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Миграции и seed ходят по ПРЯМОМУ соединению, а рантайм приложения — по
+    // пулу (см. lib/prisma.ts). На хостингах с pgbouncer/пулером (Neon,
+    // Supabase) DATABASE_URL указывает на пул в transaction-режиме, где
+    // `prisma migrate deploy` работать не может: ему нужны сессионные
+    // advisory-локи и DDL в одной сессии. Поэтому здесь предпочитаем
+    // DIRECT_URL, а на локальной машине его просто нет и берётся DATABASE_URL.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });
