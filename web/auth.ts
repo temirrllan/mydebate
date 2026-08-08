@@ -44,6 +44,12 @@ function splitGoogleName(
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
+  // За обратным прокси (Vercel, Caddy, nginx) запрос приходит на приложение с
+  // внутренним Host, а настоящий домен — в X-Forwarded-Host. Без trustHost
+  // Auth.js отказывается доверять этому заголовку и падает с UntrustedHost при
+  // любом входе на проде. Домен для callback'ов и ссылок берётся из AUTH_URL
+  // (см. .env.example), так что доверие заголовку не открывает подмену хоста.
+  trustHost: true,
   pages: {
     // Кастомная страница логина — чтобы NextAuth не редиректил на свою
     // дефолтную /api/auth/signin при отсутствии сессии.

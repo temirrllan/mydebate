@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
+      // Обложки/логотипы турниров в проде лежат в Vercel Blob (см.
+      // app/api/uploads/tournament-image/route.ts). Публичный хост хранилища —
+      // <id>.public.blob.vercel-storage.com, id выдаётся при создании стора,
+      // поэтому поддомен задан шаблоном.
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
     ],
   },
   async headers() {

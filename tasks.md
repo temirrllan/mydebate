@@ -155,3 +155,27 @@
 - [x] Добавлять пользователей вручную из админки (`createUserByAdmin` + форма на `/admin/users`)
 
 > Проверено в браузере под admin: правка чужого турнира, баннер публикации, создание пользователя (Тест Тестов/Организатор) — всё ✅. build/lint зелёные. БД пересеяна.
+
+---
+
+## Деплой — шаг 1: правки в коде (2026-08-09) #done #deploy
+Подробности: [[progress]] · План: [[deploy]].
+- [x] `prisma generate` в `build`/`postinstall` — иначе сборка на CI/Vercel падает
+- [x] Загрузка обложек: Vercel Blob при `BLOB_READ_WRITE_TOKEN`, иначе локальный диск (+ хост в `remotePatterns`)
+- [x] `trustHost: true` в `auth.ts` — иначе вход на проде падает с `UntrustedHost`
+- [x] `.npmrc` (`legacy-peer-deps`) — конфликт `nodemailer@9` с peer-диапазоном next-auth
+- [x] `DIRECT_URL` для миграций в `prisma.config.ts`
+- [x] `web/.env.example` + исключение в `.gitignore`
+- [x] 🐛 Подделанная ссылка в `coverImage`/`logoImage` роняла каталог через `next/image` → whitelist `imageUrlSchema` + тест
+- [x] Убран мусор в корне репозитория (`config`, `prefix`, `set`, `export PATH=~`)
+- [x] Проверка: build + lint + tsc + 38 тестов — всё зелёное
+
+## Деплой — шаги 2–5: инфраструктура #todo #deploy
+Развёрнуто в [[deploy]].
+- [ ] Завести прод-Postgres (Neon/Supabase), взять пулерную и прямую строки подключения
+- [ ] Создать Vercel Blob-стор, подключить к проекту
+- [ ] Домен + Google OAuth redirect URI на прод-домен
+- [ ] Транзакционная почта вместо Gmail SMTP (Resend/Postmark)
+- [ ] Импорт репозитория в Vercel, **Root Directory = `web`**, заполнить переменные окружения
+- [ ] `prisma migrate deploy` по `DIRECT_URL`, завести админа
+- [ ] Smoke-тест по ролям на проде + `npm run test:e2e` против прод-URL
