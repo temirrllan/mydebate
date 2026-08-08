@@ -23,6 +23,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Сборка в самодостаточный сервер для Docker: Next трассирует реально
+  // используемые модули и складывает их в .next/standalone вместе с
+  // server.js. В образ тогда не едет весь node_modules (сотни мегабайт) —
+  // только нужное. Prisma 7 сюда вписывается без плясок с бинарниками:
+  // движок запросов у неё — WASM, зашитый base64-строкой в обычный .mjs
+  // (@prisma/client/runtime/query_compiler_fast_bg.postgresql.wasm-base64.mjs),
+  // так что трассировщик видит его как рядовой импорт.
+  output: "standalone",
   images: {
     // Аватары Google-пользователей (OAuth) отдаются с googleusercontent.com —
     // next/image требует явно разрешить внешний хост.

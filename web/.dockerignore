@@ -1,0 +1,37 @@
+# Что НЕ должно попасть в контекст сборки образа.
+# Смысл двойной: образ не распухает, и секреты не уезжают на сервер внутри слоёв.
+
+node_modules
+.next
+generated
+tsconfig.tsbuildinfo
+
+# Секреты. Настоящие значения на сервере приходят через окружение (env_file в
+# docker-compose.yml), а не файлом внутри образа.
+.env
+.env.*
+!.env.example
+
+# Загруженные пользователями файлы — им место на томе, а не в образе.
+public/uploads/tournaments/*
+!public/uploads/tournaments/.gitkeep
+
+# Тесты и их артефакты в проде не нужны.
+tests
+e2e
+playwright.config.ts
+vitest.config.ts
+test-results
+playwright-report
+.playwright
+
+# Прочее
+.git
+.gitignore
+Dockerfile
+.dockerignore
+README.md
+AGENTS.md
+CLAUDE.md
+npm-debug.log*
+.DS_Store

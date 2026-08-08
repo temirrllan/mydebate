@@ -1,0 +1,87 @@
+# Развёртывание MyDebate на своём сервере: приложение, база, обратный прокси —
+# всё на одной машине. Пошаговая инструкция — в notes/deploy-vps.md.
+#
+# Наружу торчит только caddy (80/443). База и приложение видны лишь внутри
+# сети compose: у db и web намеренно нет секции ports, иначе Postgres оказался
+# бы доступен из интернета.
+#
+# Значения берутся из файла .env рядом с этим файлом (см. .env.production.example).
+
+services:
+  # --- База данных ---------------------------------------------------------
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Данные базы живут на именованном томе, а не внутри контейнера:
+      # пересоздание контейнера (обновление образа) их не трогает.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Без этой проверки миграции стартуют раньше, чем Postgres успевает
+      # принять первое соединение, и падают на ровном месте.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # --- Миграции ------------------------------------------------------------
+  # Разовая задача: применяет миграции и завершается. Приложение стартует
+  # только после её успеха, поэтому оно никогда не видит устаревшую схему.
+  migrate:
+    build:
+      context: ./web
+      target: migrator
+    restart: "no"
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # --- Приложение ----------------------------------------------------------
+  web:
+    build:
+      context: ./web
+      target: runner
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Загруженные обложки и логотипы. Это и есть замена Vercel Blob: пока в
+      # окружении нет BLOB_READ_WRITE_TOKEN, приложение пишет файлы сюда.
+      # Том обязателен — без него картинки исчезнут при первом же обновлении.
+      - uploads:/app/public/uploads/tournaments
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # --- HTTPS и раздача наружу ---------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Здесь Caddy хранит выпущенные сертификаты. Без тома он будет
+      # перевыпускать их после каждого перезапуска и упрётся в лимиты
+      # Let's Encrypt.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

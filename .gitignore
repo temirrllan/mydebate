@@ -1,6 +1,15 @@
 # Зависимости и сборка (детали — в web/.gitignore)
 node_modules/
 
+# Окружение сервера: пароль базы, AUTH_SECRET, доступы к почте и Google.
+# Шаблон без секретов — .env.production.example — наоборот, коммитится.
+.env
+.env.*
+!.env.production.example
+
+# Бэкапы базы, если их складывают рядом с проектом
+backups/
+
 # Obsidian: рабочее состояние хранилища, к проекту отношения не имеет
 .obsidian/
 
