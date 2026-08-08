@@ -69,3 +69,21 @@
 ## Альтернатива: VPS + Docker
 
 Если не хочется зависеть от Vercel: VPS (~5 $/мес), Docker Compose из Next (`output: "standalone"`), Postgres и Caddy для TLS, `public/uploads` на volume. Код правок почти не требует — загрузчик сам уходит в локальный режим, когда нет `BLOB_READ_WRITE_TOKEN`. Взамен на тебе TLS, бэкапы, обновления и мониторинг.
+
+---
+
+## Обновление 2026-08-09: выбран путь VPS
+
+Развёртывание идёт не на Vercel, а на своём сервере — всё на одной машине (приложение + Postgres + Caddy в Docker Compose). Шаги 2–5 выше относятся к варианту с Vercel и оставлены как справка на случай возврата к нему.
+
+Актуальная инструкция: [[deploy-vps]]. Объяснение, чем один путь отличается от другого и зачем вообще нужен каждый кубик: [[deploy-guide]].
+
+Что добавлено в репозиторий:
+- `web/Dockerfile` — multi-stage, сборка Next в standalone; отдельная стадия `migrator` под `prisma migrate deploy`
+- `docker-compose.yml` — сервисы `db` / `migrate` / `web` / `caddy`; наружу торчит только Caddy, база доступна лишь внутри сети
+- `Caddyfile` — HTTPS с автопродлением сертификата
+- `.env.production.example` — шаблон окружения сервера
+- `deploy/backup.sh` — дамп базы с ротацией, ставится в cron
+- `next.config.ts` — `output: "standalone"`
+
+Neon и Vercel Blob в этом варианте не нужны: база в контейнере, картинки — на постоянном томе (код уходит в дисковый режим, когда нет `BLOB_READ_WRITE_TOKEN`).

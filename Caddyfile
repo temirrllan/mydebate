@@ -1,0 +1,23 @@
+# Обратный прокси перед приложением. Caddy сам получает сертификат
+# Let's Encrypt для {$DOMAIN} и продлевает его — отдельной настройки TLS,
+# certbot и cron не нужно. Единственное условие: домен должен уже указывать
+# A-записью на IP сервера, иначе проверка владения не пройдёт.
+
+{$DOMAIN} {
+	# Приложение слушает 3000 внутри сети compose. Caddy добавляет
+	# X-Forwarded-Proto/Host — их читает NextAuth (в auth.ts включён
+	# trustHost), поэтому вход работает за прокси.
+	reverse_proxy web:3000
+
+	encode gzip zstd
+
+	# Загруженные картинки отдаёт само приложение из public/uploads, отдельного
+	# правила не нужно.
+
+	log {
+		output file /data/access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
