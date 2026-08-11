@@ -33,9 +33,25 @@ const PUBLIC_PATHS = [
 ];
 
 // Требуют авторизации (любая роль USER/ORGANIZER/ADMIN) — гость видит только
-// редирект на /login. Это НЕОБЫЧНОЕ по спеку правило: гость не видит даже
-// каталог турниров ("View tournaments list" ❌ для Guest, spec §3/§10).
-const AUTH_REQUIRED_PREFIXES = ["/tournaments", "/profile"];
+// редирект на /login.
+const AUTH_REQUIRED_PREFIXES = ["/profile"];
+
+// Турниры: СМОТРЕТЬ может любой, ДЕЙСТВОВАТЬ — только вошедший.
+//
+// Изначально по спеку (§3/§10) каталог был закрыт даже от гостя. Правило
+// изменено сознательно: поисковый робот приходит на сайт как гость, и при
+// закрытом каталоге Google физически не мог проиндексировать ни одного
+// турнира — сайт не находился по запросам вроде «дебатный турнир Алматы».
+// Теперь открыты просмотр каталога (/tournaments) и страница турнира
+// (/tournaments/<id>), а вход требуется на действиях: создать турнир,
+// зарегистрироваться, редактировать, смотреть участников.
+//
+// Регулярным выражением, а не префиксом: id турнира — произвольный сегмент
+// пути, и «/tournaments/<id>/register» простым startsWith не выразить.
+const TOURNAMENT_ACTION_PATTERNS = [
+  /^\/tournaments\/create$/,
+  /^\/tournaments\/[^/]+\/(register|edit|participants)(\/.*)?$/,
+];
 
 // Только ADMIN (spec §3/§10: "Moderation" / "Manage users" — только Admin).
 const ADMIN_ONLY_PREFIXES = ["/admin"];
@@ -55,7 +71,9 @@ export default auth((req) => {
   }
 
   const isAdminRoute = matchesPrefix(pathname, ADMIN_ONLY_PREFIXES);
-  const isAuthRequiredRoute = matchesPrefix(pathname, AUTH_REQUIRED_PREFIXES);
+  const isAuthRequiredRoute =
+    matchesPrefix(pathname, AUTH_REQUIRED_PREFIXES) ||
+    TOURNAMENT_ACTION_PATTERNS.some((pattern) => pattern.test(pathname));
 
   if (!isAdminRoute && !isAuthRequiredRoute) {
     return NextResponse.next();

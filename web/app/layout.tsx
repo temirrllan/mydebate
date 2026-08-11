@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getUnreadNotificationCount } from "@/lib/profile/queries";
+import { SITE_URL } from "@/lib/site";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -13,12 +14,42 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // Без metadataBase все относительные ссылки в превью (og:image и прочее)
+  // остаются относительными, а мессенджеры и поисковики понимают только
+  // абсолютные — превью просто не покажется.
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "MyDebate — дебатные турниры и MUN-конференции Казахстана",
     template: "%s · MyDebate",
   },
   description:
     "Все актуальные дебатные турниры и MUN-конференции на одной платформе. Находи, публикуй и регистрируйся на мероприятия.",
+  keywords: [
+    "дебатные турниры",
+    "дебаты Казахстан",
+    "MUN конференции",
+    "Модель ООН",
+    "турниры по дебатам Алматы",
+    "турниры по дебатам Астана",
+    "школьные дебаты",
+  ],
+  alternates: { canonical: "/" },
+  // Превью при отправке ссылки в WhatsApp, Telegram и соцсети. Без него
+  // вместо карточки будет голый адрес.
+  openGraph: {
+    type: "website",
+    siteName: "MyDebate",
+    locale: "ru_RU",
+    url: SITE_URL,
+    title: "MyDebate — дебатные турниры и MUN-конференции Казахстана",
+    description:
+      "Все актуальные дебатные турниры и MUN-конференции на одной платформе. Находи, публикуй и регистрируйся на мероприятия.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MyDebate — дебатные турниры и MUN-конференции Казахстана",
+    description: "Все актуальные дебатные турниры и MUN-конференции на одной платформе.",
+  },
 };
 
 export default async function RootLayout({

@@ -25,10 +25,10 @@ import { Card } from "@/components/ui/card";
 import { CtaBanner } from "@/components/ui/cta-banner";
 import { FavoriteButton } from "@/components/tournaments/favorite-button";
 import { getTournamentDetail } from "@/lib/tournaments/queries";
-import { requireUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getFavoriteTournamentIds } from "@/lib/actions/favorites";
 import { getMyRegistrations } from "@/lib/profile/queries";
-import { TournamentFormat, RegistrationType, parseLanguages } from "@/lib/enums";
+import { TournamentFormat, RegistrationType, LocationType, parseLanguages } from "@/lib/enums";
 import {
   FORMAT_LABEL,
   LEVEL_LABEL,
@@ -40,6 +40,17 @@ import {
   isRegistrationOpen,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { absoluteUrl } from "@/lib/site";
+
+/** Аннотация для поиска и превью: первые ~160 символов описания одной строкой. */
+function buildDescription(tournament: { description: string; city: string | null; startDate: Date }): string {
+  const where = tournament.city ? `${tournament.city}, ` : "Онлайн, ";
+  const when = formatDateRu(tournament.startDate);
+  const prefix = `${where}${when}. `;
+  const text = tournament.description.replace(/\s+/g, " ").trim();
+  const room = 160 - prefix.length;
+  return prefix + (text.length > room ? `${text.slice(0, room - 1).trimEnd()}…` : text);
+}
 
 export async function generateMetadata({
   params,
@@ -48,7 +59,28 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const tournament = await getTournamentDetail(id);
-  return { title: tournament?.title ?? "Турнир не найден" };
+  if (!tournament) return { title: "Турнир не найден" };
+
+  const description = buildDescription(tournament);
+  const url = `/tournaments/${id}`;
+
+  return {
+    title: tournament.title,
+    description,
+    // canonical говорит поисковику, какой адрес считать главным: на страницу
+    // могут вести ссылки с метками рекламных кампаний, и без этого он
+    // посчитал бы их разными страницами с одинаковым содержимым.
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      title: tournament.title,
+      description,
+      // Относительный путь достаточен: абсолютным его сделает metadataBase
+      // из app/layout.tsx.
+      images: tournament.coverImage ? [tournament.coverImage] : undefined,
+    },
+  };
 }
 
 export default async function TournamentDetailPage({
@@ -60,13 +92,14 @@ export default async function TournamentDetailPage({
   const tournament = await getTournamentDetail(id);
   if (!tournament) notFound();
 
-  // requireUser, а не getCurrentUser: см. комментарий в app/tournaments/page.tsx —
-  // proxy.ts судит по JWT и не знает про блокировку/удаление аккаунта в БД.
-  const user = await requireUser(`/tournaments/${id}`);
-  const [favoriteIds, myRegistrations] = await Promise.all([
-    getFavoriteTournamentIds(user.id),
-    getMyRegistrations(user.id),
-  ]);
+  // Страница турнира открыта всем — с неё и приходят люди из поиска
+  // (см. proxy.ts). Гостю показываем всё то же самое, кроме личных вещей:
+  // избранного и статуса собственной заявки. Кнопка «Зарегистрироваться»
+  // ведёт на защищённый маршрут, поэтому гостя аккуратно отправит на вход.
+  const user = await getCurrentUser();
+  const [favoriteIds, myRegistrations] = user
+    ? await Promise.all([getFavoriteTournamentIds(user.id), getMyRegistrations(user.id)])
+    : [new Set<string>(), []];
   const myRegistration = myRegistrations.find((r) => r.tournament.id === tournament.id);
 
   const open = isRegistrationOpen(tournament.registrationDeadline);
@@ -78,8 +111,56 @@ export default async function TournamentDetailPage({
   // недоступна, см. guard в register/page.tsx).
   const isExternal = tournament.registrationType === RegistrationType.EXTERNAL && Boolean(tournament.externalUrl);
 
+  // Разметка события по schema.org. Обычный текст страницы поисковик читает
+  // как текст, а отсюда достаёт факты однозначно: когда, где, почём. Благодаря
+  // ей турнир может показаться в выдаче карточкой с датой и городом, а не
+  // просто синей ссылкой. Заполняем только то, что действительно знаем —
+  // выдуманные поля хуже отсутствующих.
+  const isOnline = tournament.locationType === LocationType.ONLINE;
+  const eventJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: tournament.title,
+    description: buildDescription(tournament),
+    startDate: new Date(tournament.startDate).toISOString(),
+    ...(tournament.endDate ? { endDate: new Date(tournament.endDate).toISOString() } : {}),
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: isOnline
+      ? "https://schema.org/OnlineEventAttendanceMode"
+      : "https://schema.org/OfflineEventAttendanceMode",
+    url: absoluteUrl(`/tournaments/${tournament.id}`),
+    ...(tournament.coverImage ? { image: [absoluteUrl(tournament.coverImage)] } : {}),
+    location: isOnline
+      ? { "@type": "VirtualLocation", url: absoluteUrl(`/tournaments/${tournament.id}`) }
+      : {
+          "@type": "Place",
+          name: tournament.venue ?? tournament.city ?? "Казахстан",
+          address: {
+            "@type": "PostalAddress",
+            addressCountry: "KZ",
+            ...(tournament.city ? { addressLocality: tournament.city } : {}),
+            ...(tournament.address ? { streetAddress: tournament.address } : {}),
+          },
+        },
+    offers: {
+      "@type": "Offer",
+      price: tournament.price,
+      priceCurrency: "KZT",
+      url: absoluteUrl(`/tournaments/${tournament.id}`),
+      availability: open ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Данные наши собственные и сериализуются JSON.stringify, но экранируем
+        // "<" — иначе строка вида "</script>" в описании турнира закрыла бы тег.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(eventJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       {/* Hero */}
       <section className="relative overflow-hidden bg-navy-900">
         {tournament.coverImage ? (

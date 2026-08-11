@@ -14,10 +14,32 @@ async function login(page: Page, { email, password }: { email: string; password:
 }
 
 test.describe("гость", () => {
-  test("не видит каталог турниров — его уводит на вход", async ({ page }) => {
+  // Каталог и страницы турниров открыты гостю намеренно: поисковый робот
+  // приходит как гость, и при закрытом каталоге сайт не индексировался вовсе
+  // (см. proxy.ts). Вход требуется на действиях — они проверяются ниже.
+  test("видит каталог турниров", async ({ page }) => {
     await page.goto("/tournaments");
 
-    await expect(page).toHaveURL(/\/login\?callbackUrl=%2Ftournaments/);
+    await expect(page).toHaveURL(/\/tournaments/);
+    await expect(page.getByRole("heading", { name: "Все турниры" })).toBeVisible();
+  });
+
+  test("открывает страницу турнира, но регистрация уводит на вход", async ({ page }) => {
+    await page.goto("/tournaments");
+    const firstCard = page.getByRole("link", { name: "Подробнее" }).first();
+    await firstCard.click();
+    await expect(page).toHaveURL(/\/tournaments\/[^/]+$/);
+
+    const tournamentUrl = new URL(page.url());
+    await page.goto(`${tournamentUrl.pathname}/register`);
+    await expect(page).toHaveURL(/\/login\?callbackUrl=/);
+    await expect(page.getByRole("heading", { name: "Вход в аккаунт" })).toBeVisible();
+  });
+
+  test("не может создать турнир — его уводит на вход", async ({ page }) => {
+    await page.goto("/tournaments/create");
+
+    await expect(page).toHaveURL(/\/login\?callbackUrl=%2Ftournaments%2Fcreate/);
     await expect(page.getByRole("heading", { name: "Вход в аккаунт" })).toBeVisible();
   });
 
@@ -47,15 +69,17 @@ test.describe("гость", () => {
 
 test.describe("пользователь", () => {
   test("входит и попадает туда, куда шёл (callbackUrl)", async ({ page }) => {
-    await page.goto("/tournaments");
-    await expect(page).toHaveURL(/\/login/);
+    // Каталог гостю теперь открыт, поэтому проверяем callbackUrl на
+    // защищённом маршруте — создании турнира.
+    await page.goto("/tournaments/create");
+    await expect(page).toHaveURL(/\/login\?callbackUrl=%2Ftournaments%2Fcreate/);
 
     await page.getByRole("textbox", { name: "Email" }).fill(USER.email);
     await page.getByRole("textbox", { name: "Пароль" }).fill(USER.password);
     await page.getByRole("button", { name: "Войти", exact: true }).click();
 
-    await expect(page).toHaveURL(/\/tournaments/);
-    await expect(page.getByRole("heading", { name: "Все турниры" })).toBeVisible();
+    await expect(page).toHaveURL(/\/tournaments\/create/);
+    await expect(page.getByRole("heading", { name: "Создание турнира" })).toBeVisible();
   });
 
   test("не попадает в админку — видит «Доступ запрещён»", async ({ page }) => {
