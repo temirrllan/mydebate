@@ -12,7 +12,7 @@ import { FiltersBar } from "@/components/tournaments/filters-bar";
 import Link from "next/link";
 import { listTournaments, getAvailableCities, type TournamentSort } from "@/lib/tournaments/queries";
 import { getFavoriteTournamentIds } from "@/lib/actions/favorites";
-import { requireUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Все турниры" };
 
@@ -69,12 +69,12 @@ export default async function TournamentsPage({
     result = { items: [], total: 0, page: 1, pageSize: 12, totalPages: 1 };
   }
 
-  // requireUser, а не getCurrentUser: proxy.ts проверяет только JWT из cookie и
-  // не ходит в БД, поэтому заблокированный/удалённый пользователь со старым, но
-  // ещё валидным токеном проходил бы гейт и видел каталог — а по спеку каталог
-  // закрыт даже от гостя.
-  const user = await requireUser("/tournaments");
-  const favoriteIds = await getFavoriteTournamentIds(user.id);
+  // Каталог открыт всем, включая гостя и поискового робота (см. proxy.ts —
+  // там же объяснение, почему правило изменили). Поэтому getCurrentUser, а не
+  // requireUser: у гостя просто нет сессии, и это не повод его разворачивать.
+  // Избранное — личная штука, для гостя его нет, запрос в БД не делаем.
+  const user = await getCurrentUser();
+  const favoriteIds = user ? await getFavoriteTournamentIds(user.id) : new Set<string>();
 
   function buildHref(targetPage: number) {
     const usp = new URLSearchParams();
@@ -136,10 +136,14 @@ export default async function TournamentsPage({
                     <TournamentCard
                       tournament={tournament}
                       favoriteSlot={
-                        <FavoriteButton
-                          tournamentId={tournament.id}
-                          initialFavorited={favoriteIds.has(tournament.id)}
-                        />
+                        // Гостю сердечко не показываем: нажать он всё равно не
+                        // сможет — экшен избранного требует сессии.
+                        user ? (
+                          <FavoriteButton
+                            tournamentId={tournament.id}
+                            initialFavorited={favoriteIds.has(tournament.id)}
+                          />
+                        ) : undefined
                       }
                     />
                   </div>

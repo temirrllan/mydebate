@@ -18,3 +18,19 @@ export const SITE_CONTACTS = {
   },
   city: "Астана, Казахстан",
 } as const;
+
+/**
+ * Публичный адрес сайта — единая точка правды для всего, что должно быть
+ * абсолютной ссылкой: карта сайта, robots.txt, canonical, превью ссылок в
+ * мессенджерах (Open Graph).
+ *
+ * Берём из AUTH_URL — той же переменной, на которую опираются OAuth-колбэки и
+ * ссылки в письмах (lib/email/templates.ts). Держать отдельную переменную под
+ * тот же адрес значит однажды поменять одну и забыть вторую.
+ */
+export const SITE_URL = (process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+
+/** Абсолютная ссылка на страницу сайта: absoluteUrl("/tournaments") */
+export function absoluteUrl(pathname: string): string {
+  return `${SITE_URL}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
+}
