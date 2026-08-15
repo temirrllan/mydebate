@@ -46,6 +46,9 @@ function buildInitialValues(t: TournamentEditData): WizardValues {
     sections: t.sections.map((s) => ({ title: s.title, description: s.description })),
     registrationType: t.registrationType || "PLATFORM",
     externalUrl: t.externalUrl ?? "",
+    paymentMethod: t.paymentMethod ?? "",
+    paymentAccount: t.paymentAccount ?? "",
+    paymentRecipient: t.paymentRecipient ?? "",
     instagram: t.instagram ?? "",
     telegram: t.telegram ?? "",
     email: t.email ?? "",
@@ -124,6 +127,9 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
     const s3 = step3Schema.safeParse({
       registrationType: values.registrationType,
       externalUrl: values.externalUrl,
+      paymentMethod: values.paymentMethod,
+      paymentAccount: values.paymentAccount,
+      paymentRecipient: values.paymentRecipient,
       instagram: values.instagram,
       telegram: values.telegram,
       email: values.email,
@@ -161,6 +167,9 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
     fd.set("sectionsJson", JSON.stringify(values.sections));
     fd.set("registrationType", values.registrationType);
     fd.set("externalUrl", values.externalUrl);
+    fd.set("paymentMethod", values.paymentMethod);
+    fd.set("paymentAccount", values.paymentAccount);
+    fd.set("paymentRecipient", values.paymentRecipient);
     fd.set("instagram", values.instagram);
     fd.set("telegram", values.telegram);
     fd.set("email", values.email);

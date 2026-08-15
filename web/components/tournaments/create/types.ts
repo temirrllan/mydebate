@@ -29,6 +29,9 @@ export type WizardValues = {
   // Шаг 3
   registrationType: string;
   externalUrl: string;
+  paymentMethod: string;
+  paymentAccount: string;
+  paymentRecipient: string;
   instagram: string;
   telegram: string;
   email: string;
@@ -53,6 +56,9 @@ export const INITIAL_WIZARD_VALUES: WizardValues = {
   sections: [],
   registrationType: "PLATFORM",
   externalUrl: "",
+  paymentMethod: "Kaspi",
+  paymentAccount: "",
+  paymentRecipient: "",
   instagram: "",
   telegram: "",
   email: "",
@@ -84,7 +90,16 @@ const STEP_FIELDS: Record<number, (keyof WizardValues)[]> = {
     "price",
   ],
   2: ["description", "coverImage", "logoImage", "sections"],
-  3: ["registrationType", "externalUrl", "instagram", "telegram", "email"],
+  3: [
+    "registrationType",
+    "externalUrl",
+    "paymentMethod",
+    "paymentAccount",
+    "paymentRecipient",
+    "instagram",
+    "telegram",
+    "email",
+  ],
 };
 
 export function getStepForField(field: string): number {

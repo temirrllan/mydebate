@@ -13,6 +13,20 @@ import { z } from "zod";
 import { Level, RegistrationStatus } from "@/lib/enums";
 import { emailSchema } from "@/lib/validations/auth";
 
+/**
+ * Ссылка на чек об оплате — ровно тот вид, который возвращает загрузчик
+ * (app/api/uploads/payment-receipt/route.ts): «/uploads/receipts/<uuid>.<ext>».
+ * Имя файла задаём мы сами (uuid + расширение по сигнатуре содержимого),
+ * поэтому шаблон строгий — произвольный путь сюда не подставить.
+ */
+const receiptUrlSchema = z
+  .string()
+  .trim()
+  .max(300)
+  .refine((val) => !val || /^\/uploads\/receipts\/[a-f0-9-]{36}\.(jpg|png|webp|pdf)$/i.test(val), {
+    error: "Некорректная ссылка на чек",
+  });
+
 export const registrationSchema = z.object({
   // 1. Личная информация (макет: Full Name / Grade-Course / School-University
   // / Phone Number / Email Address — все обязательны).
@@ -36,6 +50,16 @@ export const registrationSchema = z.object({
     .or(z.literal("")),
   preferredLanguage: z.string().trim().min(1, { error: "Выберите язык" }).max(50),
   additionalInfo: z.string().trim().max(500).optional().or(z.literal("")),
+
+  // 3. Подтверждение оплаты. Путь чека, уже загруженного через
+  // app/api/uploads/payment-receipt/route.ts. Здесь поле необязательное:
+  // обязательность зависит от цены турнира, которая известна только серверу —
+  // проверка в lib/actions/registrations.ts.
+  //
+  // Формат проверяем строго, как и у обложек: значение приходит из formData,
+  // то есть подделывается POST'ом в обход формы, и попадает в ссылку, по
+  // которой организатор потом открывает файл.
+  receiptUrl: receiptUrlSchema.optional().or(z.literal("")),
 
   // 4. Согласие (три чекбокса макета объединены в один флаг — по аналогии с
   // registerSchema из lib/validations/auth.ts).

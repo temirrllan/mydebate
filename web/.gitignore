@@ -55,6 +55,10 @@ next-env.d.ts
 /prisma/*.db
 /prisma/*.db-journal
 
+# чеки об оплате (локальная разработка) — вне public, отдаются маршрутом
+# с проверкой прав; на сервере это отдельный том
+/data/
+
 # user-uploaded content (tournament covers/logos, avatars later) — written at
 # runtime by app/api/uploads/*/route.ts, not committed. Keep the folder itself
 # tracked via .gitkeep so a fresh clone has somewhere to write to.

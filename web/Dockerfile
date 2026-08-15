@@ -71,6 +71,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 RUN mkdir -p /app/public/uploads/tournaments \
   && chown -R nextjs:nodejs /app/public/uploads
 
+# Чеки об оплате — вне public: всё, что лежит в public на момент старта
+# сервера, Next отдаёт статикой в обход проверки прав
+# (app/uploads/receipts/[filename]/route.ts). Каталог тоже монтируется томом.
+RUN mkdir -p /app/data/receipts && chown -R nextjs:nodejs /app/data
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "server.js"]

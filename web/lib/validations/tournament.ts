@@ -205,6 +205,12 @@ const step3BaseSchema = z.object({
     error: "Выберите способ регистрации",
   }),
   externalUrl: z.string().trim().max(500).optional().or(z.literal("")),
+  // Реквизиты для оплаты взноса. На уровне шага необязательны: цена живёт на
+  // шаге 1, и требовать их можно только когда известны оба поля — проверка в
+  // validatePaymentCross, она включается в полные схемы.
+  paymentMethod: z.string().trim().max(60).optional().or(z.literal("")),
+  paymentAccount: z.string().trim().max(60).optional().or(z.literal("")),
+  paymentRecipient: z.string().trim().max(150).optional().or(z.literal("")),
   instagram: z.string().trim().max(200).optional().or(z.literal("")),
   telegram: z.string().trim().max(200).optional().or(z.literal("")),
   email: optionalEmailSchema,
@@ -236,6 +242,43 @@ function validateStep3Cross(
   }
 }
 
+/**
+ * Платный турнир с регистрацией на платформе обязан иметь реквизиты: иначе
+ * участник дойдёт до блока оплаты и увидит пустоту — платить некуда, а чек
+ * без него не приложить.
+ *
+ * Для бесплатных турниров и для внешней регистрации (участник уходит на сайт
+ * организатора) реквизиты не нужны — там платит и проверяет не платформа.
+ */
+function validatePaymentCross(
+  data: {
+    price?: number;
+    registrationType: string;
+    paymentAccount?: string;
+    paymentRecipient?: string;
+  },
+  ctx: z.RefinementCtx,
+) {
+  const needsPayment =
+    (data.price ?? 0) > 0 && data.registrationType === RegistrationType.PLATFORM;
+  if (!needsPayment) return;
+
+  if (!data.paymentAccount?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Укажите номер карты или телефона для оплаты взноса",
+      path: ["paymentAccount"],
+    });
+  }
+  if (!data.paymentRecipient?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Укажите ФИО получателя перевода",
+      path: ["paymentRecipient"],
+    });
+  }
+}
+
 export const step3Schema = step3BaseSchema.superRefine(validateStep3Cross);
 export type Step3Input = z.infer<typeof step3Schema>;
 
@@ -250,6 +293,7 @@ const createTournamentBaseSchema = step1BaseSchema
 export const createTournamentSchema = createTournamentBaseSchema.superRefine((data, ctx) => {
   validateStep1Cross(data, ctx);
   validateStep3Cross(data, ctx);
+  validatePaymentCross(data, ctx);
 });
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
@@ -262,6 +306,7 @@ export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
 export const editTournamentSchema = createTournamentBaseSchema.superRefine((data, ctx) => {
   validateStep1Cross(data, ctx, { allowPastDeadline: true });
   validateStep3Cross(data, ctx);
+  validatePaymentCross(data, ctx);
 });
 
 export type EditTournamentInput = z.infer<typeof editTournamentSchema>;
