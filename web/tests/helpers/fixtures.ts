@@ -72,6 +72,11 @@ export async function createTournament(overrides: {
       status: overrides.status ?? TournamentStatus.PUBLISHED,
       registrationType: RegistrationType.PLATFORM,
       price: overrides.price ?? 0,
+      // Реквизиты идут в комплекте с ценой: без них чек не требуется (см.
+      // registerForTournament), и тесты на обязательность чека были бы
+      // зелёными по неверной причине.
+      paymentAccount: overrides.price ? "+7 701 000 0000" : null,
+      paymentRecipient: overrides.price ? "Иванов Иван Иванович" : null,
       rejectionReason: overrides.rejectionReason ?? null,
       organizerId: overrides.organizerId,
     },

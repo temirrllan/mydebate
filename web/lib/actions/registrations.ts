@@ -83,6 +83,7 @@ export async function registerForTournament(
       title: true,
       price: true,
       registrationType: true,
+      paymentAccount: true,
     },
   });
 
@@ -96,11 +97,19 @@ export async function registerForTournament(
     return { message: "Регистрация на этот турнир уже закрыта." };
   }
 
-  // Чек обязателен только для платного турнира с регистрацией на платформе.
-  // Проверка именно здесь, а не в zod-схеме: цена известна серверу, а не
-  // форме, и доверять присланному клиентом признаку «турнир платный» нельзя.
+  // Чек обязателен для платного турнира с регистрацией на платформе — и
+  // только если организатор указал реквизиты. Проверка именно здесь, а не в
+  // zod-схеме: цена известна серверу, а не форме, и доверять присланному
+  // клиентом признаку «турнир платный» нельзя.
+  //
+  // Условие про реквизиты не формальность: турниры, созданные до появления
+  // этого поля, платные, но переводить некуда. Без него регистрация на них
+  // стала бы невозможной — участник не может приложить чек об оплате,
+  // которую негде совершить.
   const needsReceipt =
-    tournament.price > 0 && tournament.registrationType === RegistrationType.PLATFORM;
+    tournament.price > 0 &&
+    tournament.registrationType === RegistrationType.PLATFORM &&
+    Boolean(tournament.paymentAccount);
   if (needsReceipt && !parsed.data.receiptUrl) {
     return {
       fieldErrors: { receiptUrl: ["Приложите чек об оплате взноса"] },

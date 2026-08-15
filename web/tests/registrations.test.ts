@@ -75,6 +75,18 @@ describe("регистрация на турнир", () => {
     expect(reg?.receiptUrl).toBe(receipt);
   });
 
+  it("не требует чек, если организатор не указал реквизиты", async () => {
+    // Турниры, созданные до появления реквизитов: цена есть, платить некуда.
+    // Требовать чек значило бы закрыть им регистрацию совсем.
+    const t = await createTournament({ organizerId: organizer.id, price: 5000 });
+    await prisma.tournament.update({ where: { id: t.id }, data: { paymentAccount: null } });
+    loginAs(user);
+
+    const result = await registerForTournament(t.id, undefined, registrationForm());
+
+    expect(result).toMatchObject({ success: true });
+  });
+
   it("не требует чек, если турнир бесплатный", async () => {
     const t = await createTournament({ organizerId: organizer.id, price: 0 });
     loginAs(user);
