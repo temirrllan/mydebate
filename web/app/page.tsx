@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -158,17 +159,17 @@ export default async function Home() {
       {/* 3. О платформе MyDebate */}
       <section className="bg-brand-50/60">
         <Container className="grid gap-12 py-16 lg:grid-cols-2 lg:items-center lg:py-20">
-          <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-white to-brand-100/70 order-2 lg:order-1">
-            <div
-              className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle,var(--color-brand-300)_1.5px,transparent_1.5px)] [background-size:22px_22px]"
-              aria-hidden="true"
+          {/* Фотография вместо прежней заглушки с буквой «M». sizes нужен,
+              чтобы браузер не тянул полноразмерный файл на узком экране: в две
+              колонки блок раскладывается только от 1024px. */}
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] bg-brand-100/70 order-2 lg:order-1">
+            <Image
+              src="/about-debate.jpg"
+              alt="Участники дебатного турнира: спикер выступает за трибуной перед панелью судей"
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover"
             />
-            <div className="relative flex flex-col items-center gap-5">
-              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-navy-900 text-4xl font-black text-white shadow-xl shadow-navy-900/20 sm:h-28 sm:w-28 sm:text-5xl">
-                M
-              </div>
-              <div className="h-4 w-40 rounded-full bg-brand-200/70 blur-[2px]" aria-hidden="true" />
-            </div>
           </div>
 
           <div className="order-1 lg:order-2">
