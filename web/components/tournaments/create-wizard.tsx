@@ -144,6 +144,9 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
     fd.set("sectionsJson", JSON.stringify(values.sections));
     fd.set("registrationType", values.registrationType);
     fd.set("externalUrl", values.externalUrl);
+    fd.set("paymentMethod", values.paymentMethod);
+    fd.set("paymentAccount", values.paymentAccount);
+    fd.set("paymentRecipient", values.paymentRecipient);
     fd.set("instagram", values.instagram);
     fd.set("telegram", values.telegram);
     fd.set("email", values.email);

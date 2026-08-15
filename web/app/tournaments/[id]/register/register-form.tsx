@@ -16,6 +16,7 @@ import { registerForTournament } from "@/lib/actions/registrations";
 // приходит из `state.message`, которое сервер заполняет этой же константой.
 import { Level } from "@/lib/enums";
 import { LEVEL_LABEL } from "@/lib/format";
+import { PaymentSection } from "./payment-section";
 
 const initialState = undefined;
 
@@ -27,6 +28,7 @@ export function RegisterForm({
   defaultEmail,
   defaultPhone = "",
   alreadyRegistered = false,
+  payment,
 }: {
   tournamentId: string;
   tournamentTitle: string;
@@ -35,6 +37,13 @@ export function RegisterForm({
   defaultEmail: string;
   defaultPhone?: string;
   alreadyRegistered?: boolean;
+  /** Реквизиты оплаты. null — турнир бесплатный, блок оплаты не показываем. */
+  payment?: {
+    price: number;
+    method: string | null;
+    account: string | null;
+    recipient: string | null;
+  } | null;
 }) {
   const boundAction = registerForTournament.bind(null, tournamentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
@@ -348,6 +357,16 @@ export function RegisterForm({
           </div>
         </div>
       </Card>
+
+      {payment && (
+        <PaymentSection
+          price={payment.price}
+          paymentMethod={payment.method}
+          paymentAccount={payment.account}
+          paymentRecipient={payment.recipient}
+          errors={fieldErrors.receiptUrl}
+        />
+      )}
 
       <Card className="p-6 sm:p-8">
         <label className="flex items-start gap-2.5 text-sm text-ink">

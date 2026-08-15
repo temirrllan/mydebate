@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, Mail } from "lucide-react";
+import { Link2, Mail, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FieldError } from "@/components/auth/field-error";
 import { InstagramIcon, TelegramIcon } from "@/components/icons/social";
@@ -78,6 +78,81 @@ export function Step3Contacts({
             />
           </div>
           <FieldError id="externalUrl-error" messages={errors.externalUrl} />
+        </div>
+      )}
+
+      {/* Реквизиты для оплаты взноса. Показываем только когда они реально
+          нужны: турнир платный И участник платит через платформу. Для
+          бесплатного турнира или внешней регистрации блок не нужен и только
+          отвлекал бы. Цена живёт на шаге 1, поэтому читаем её из values. */}
+      {values.registrationType === RegistrationType.PLATFORM && Number(values.price) > 0 && (
+        <div className="rounded-[var(--radius-card)] border border-line bg-canvas p-5">
+          <div className="flex items-start gap-3">
+            <CreditCard size={18} className="mt-0.5 shrink-0 text-brand-600" />
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Реквизиты для оплаты взноса</h3>
+              <p className="mt-1 text-sm text-muted">
+                Участник увидит их при регистрации и приложит чек об оплате. Деньги приходят
+                напрямую вам — платформа платежи не проводит.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="paymentMethod" className="text-sm font-medium text-ink">
+                Способ оплаты
+              </label>
+              <Input
+                id="paymentMethod"
+                value={values.paymentMethod}
+                onChange={(e) => update("paymentMethod", e.target.value)}
+                placeholder="Kaspi"
+                className="mt-1.5"
+                aria-describedby={errors.paymentMethod?.length ? "paymentMethod-error" : undefined}
+              />
+              <FieldError id="paymentMethod-error" messages={errors.paymentMethod} />
+            </div>
+
+            <div>
+              <label htmlFor="paymentAccount" className="text-sm font-medium text-ink">
+                Номер карты или телефона <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                id="paymentAccount"
+                value={values.paymentAccount}
+                onChange={(e) => update("paymentAccount", e.target.value)}
+                placeholder="+7 701 272 0010"
+                className="mt-1.5"
+                invalid={Boolean(errors.paymentAccount?.length)}
+                aria-invalid={Boolean(errors.paymentAccount?.length)}
+                aria-describedby={errors.paymentAccount?.length ? "paymentAccount-error" : undefined}
+              />
+              <FieldError id="paymentAccount-error" messages={errors.paymentAccount} />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label htmlFor="paymentRecipient" className="text-sm font-medium text-ink">
+                ФИО получателя <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                id="paymentRecipient"
+                value={values.paymentRecipient}
+                onChange={(e) => update("paymentRecipient", e.target.value)}
+                placeholder="Иванов Иван Иванович"
+                className="mt-1.5"
+                invalid={Boolean(errors.paymentRecipient?.length)}
+                aria-invalid={Boolean(errors.paymentRecipient?.length)}
+                aria-describedby={
+                  errors.paymentRecipient?.length ? "paymentRecipient-error" : undefined
+                }
+              />
+              <FieldError id="paymentRecipient-error" messages={errors.paymentRecipient} />
+              <p className="mt-1.5 text-xs text-muted">
+                На чьё имя придёт перевод — участник сверит его перед оплатой.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

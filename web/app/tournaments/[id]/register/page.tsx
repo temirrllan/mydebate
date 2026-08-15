@@ -91,6 +91,18 @@ export default async function TournamentRegisterPage({
             defaultEmail={user.email}
             defaultPhone={profileFields?.phone ?? ""}
             alreadyRegistered={alreadyRegistered}
+            // Блок оплаты нужен только платному турниру. Внешняя регистрация
+            // сюда не доходит — выше стоит redirect на страницу турнира.
+            payment={
+              tournament.price > 0
+                ? {
+                    price: tournament.price,
+                    method: tournament.paymentMethod,
+                    account: tournament.paymentAccount,
+                    recipient: tournament.paymentRecipient,
+                  }
+                : null
+            }
           />
 
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">

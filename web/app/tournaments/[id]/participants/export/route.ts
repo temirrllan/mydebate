@@ -40,6 +40,10 @@ const COLUMNS: { header: string; value: (p: Participant) => string }[] = [
   },
   { header: "Язык", value: (p) => p.preferredLanguage ?? "" },
   { header: "Доп. информация", value: (p) => p.additionalInfo ?? "" },
+  // Оплата: в выгрузке достаточно отметки — сам файл открывается из карточки
+  // участника на сайте, где работает проверка прав. Складывать в CSV прямую
+  // ссылку не стоит: выгрузку пересылают и выкладывают в общие папки.
+  { header: "Чек об оплате", value: (p) => (p.receiptUrl ? "приложен" : "нет") },
 ];
 
 type Participant = NonNullable<

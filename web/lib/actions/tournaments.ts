@@ -96,6 +96,9 @@ export async function createTournament(
     sections,
     registrationType: formData.get("registrationType"),
     externalUrl: formData.get("externalUrl") ?? "",
+    paymentMethod: formData.get("paymentMethod") ?? "",
+    paymentAccount: formData.get("paymentAccount") ?? "",
+    paymentRecipient: formData.get("paymentRecipient") ?? "",
     instagram: formData.get("instagram") ?? "",
     telegram: formData.get("telegram") ?? "",
     email: formData.get("email") ?? "",
@@ -135,6 +138,15 @@ export async function createTournament(
         // от переключения радиокнопки туда-обратно на клиенте.
         externalUrl:
           data.registrationType === RegistrationType.EXTERNAL ? data.externalUrl || null : null,
+        // Реквизиты нужны только когда участник платит через платформу: при
+        // внешней регистрации он уходит на сайт организатора и платит там.
+        // Не сохраняем «хвост» от переключения радиокнопки туда-обратно.
+        paymentMethod:
+          data.registrationType === RegistrationType.PLATFORM ? data.paymentMethod || null : null,
+        paymentAccount:
+          data.registrationType === RegistrationType.PLATFORM ? data.paymentAccount || null : null,
+        paymentRecipient:
+          data.registrationType === RegistrationType.PLATFORM ? data.paymentRecipient || null : null,
         instagram: data.instagram || null,
         telegram: data.telegram || null,
         email: data.email || null,
@@ -298,6 +310,9 @@ export async function editTournament(
     sections,
     registrationType: formData.get("registrationType"),
     externalUrl: formData.get("externalUrl") ?? "",
+    paymentMethod: formData.get("paymentMethod") ?? "",
+    paymentAccount: formData.get("paymentAccount") ?? "",
+    paymentRecipient: formData.get("paymentRecipient") ?? "",
     instagram: formData.get("instagram") ?? "",
     telegram: formData.get("telegram") ?? "",
     email: formData.get("email") ?? "",
@@ -336,6 +351,16 @@ export async function editTournament(
           registrationType: data.registrationType,
           externalUrl:
             data.registrationType === RegistrationType.EXTERNAL ? data.externalUrl || null : null,
+          // См. комментарий в createTournament: реквизиты имеют смысл только
+          // при регистрации через платформу.
+          paymentMethod:
+            data.registrationType === RegistrationType.PLATFORM ? data.paymentMethod || null : null,
+          paymentAccount:
+            data.registrationType === RegistrationType.PLATFORM ? data.paymentAccount || null : null,
+          paymentRecipient:
+            data.registrationType === RegistrationType.PLATFORM
+              ? data.paymentRecipient || null
+              : null,
           instagram: data.instagram || null,
           telegram: data.telegram || null,
           email: data.email || null,

@@ -47,6 +47,59 @@ describe("регистрация на турнир", () => {
     expect(notification).not.toBeNull();
   });
 
+  it("требует чек об оплате, если турнир платный", async () => {
+    const t = await createTournament({ organizerId: organizer.id, price: 5000 });
+    loginAs(user);
+
+    const result = await registerForTournament(t.id, undefined, registrationForm());
+
+    expect(result).toMatchObject({
+      fieldErrors: { receiptUrl: ["Приложите чек об оплате взноса"] },
+    });
+    expect(await prisma.registration.count()).toBe(0);
+  });
+
+  it("принимает заявку на платный турнир с приложенным чеком", async () => {
+    const t = await createTournament({ organizerId: organizer.id, price: 5000 });
+    loginAs(user);
+
+    const receipt = "/uploads/receipts/3f8a1c2e-0b4d-4a11-9c77-2e5b6d1f0a93.pdf";
+    const result = await registerForTournament(
+      t.id,
+      undefined,
+      registrationForm({ receiptUrl: receipt }),
+    );
+
+    expect(result).toMatchObject({ success: true });
+    const reg = await prisma.registration.findFirst({ where: { tournamentId: t.id } });
+    expect(reg?.receiptUrl).toBe(receipt);
+  });
+
+  it("не требует чек, если турнир бесплатный", async () => {
+    const t = await createTournament({ organizerId: organizer.id, price: 0 });
+    loginAs(user);
+
+    const result = await registerForTournament(t.id, undefined, registrationForm());
+
+    expect(result).toMatchObject({ success: true });
+    const reg = await prisma.registration.findFirst({ where: { tournamentId: t.id } });
+    expect(reg?.receiptUrl).toBeNull();
+  });
+
+  it("отклоняет подделанную ссылку на чек — принимаем только путь загрузчика", async () => {
+    const t = await createTournament({ organizerId: organizer.id, price: 5000 });
+    loginAs(user);
+
+    const result = await registerForTournament(
+      t.id,
+      undefined,
+      registrationForm({ receiptUrl: "https://evil.example.com/pwn.pdf" }),
+    );
+
+    expect(result).toMatchObject({ fieldErrors: { receiptUrl: ["Некорректная ссылка на чек"] } });
+    expect(await prisma.registration.count()).toBe(0);
+  });
+
   it("не пускает гостя — уводит на /login", async () => {
     const t = await createTournament({ organizerId: organizer.id });
     logout();

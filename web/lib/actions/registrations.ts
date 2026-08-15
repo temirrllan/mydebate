@@ -17,7 +17,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireUser } from "@/lib/auth/session";
-import { TournamentStatus, NotificationType, Role } from "@/lib/enums";
+import { TournamentStatus, NotificationType, Role, RegistrationType } from "@/lib/enums";
 import { isRegistrationOpen, REGISTRATION_SUCCESS_MESSAGE } from "@/lib/format";
 import { registrationSchema, registrationStatusSchema } from "@/lib/validations/registration";
 import { REG_STATUS_LABEL } from "@/lib/format";
@@ -64,6 +64,7 @@ export async function registerForTournament(
     experienceLevel: formData.get("experienceLevel") ?? "",
     preferredLanguage: formData.get("preferredLanguage") ?? "",
     additionalInfo: formData.get("additionalInfo") ?? "",
+    receiptUrl: formData.get("receiptUrl") ?? "",
     agree: formData.get("agree") === "on",
   };
 
@@ -80,6 +81,8 @@ export async function registerForTournament(
       registrationDeadline: true,
       organizerId: true,
       title: true,
+      price: true,
+      registrationType: true,
     },
   });
 
@@ -91,6 +94,17 @@ export async function registerForTournament(
 
   if (!isRegistrationOpen(tournament.registrationDeadline)) {
     return { message: "Регистрация на этот турнир уже закрыта." };
+  }
+
+  // Чек обязателен только для платного турнира с регистрацией на платформе.
+  // Проверка именно здесь, а не в zod-схеме: цена известна серверу, а не
+  // форме, и доверять присланному клиентом признаку «турнир платный» нельзя.
+  const needsReceipt =
+    tournament.price > 0 && tournament.registrationType === RegistrationType.PLATFORM;
+  if (needsReceipt && !parsed.data.receiptUrl) {
+    return {
+      fieldErrors: { receiptUrl: ["Приложите чек об оплате взноса"] },
+    };
   }
 
   const existing = await prisma.registration.findUnique({
@@ -119,6 +133,7 @@ export async function registerForTournament(
         experienceLevel: data.experienceLevel || null,
         preferredLanguage: data.preferredLanguage,
         additionalInfo: data.additionalInfo || null,
+        receiptUrl: data.receiptUrl || null,
       },
     });
   } catch (error) {

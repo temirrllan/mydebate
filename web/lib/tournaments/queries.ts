@@ -197,6 +197,9 @@ export type TournamentDetail = {
   logoImage: string | null;
   registrationType: string;
   externalUrl: string | null;
+  paymentMethod: string | null;
+  paymentAccount: string | null;
+  paymentRecipient: string | null;
   instagram: string | null;
   telegram: string | null;
   email: string | null;
@@ -293,6 +296,9 @@ export async function getTournamentDetail(id: string): Promise<TournamentDetail 
       logoImage: true,
       registrationType: true,
       externalUrl: true,
+      paymentMethod: true,
+      paymentAccount: true,
+      paymentRecipient: true,
       instagram: true,
       telegram: true,
       email: true,
@@ -337,6 +343,9 @@ export type TournamentEditData = {
   logoImage: string | null;
   registrationType: string;
   externalUrl: string | null;
+  paymentMethod: string | null;
+  paymentAccount: string | null;
+  paymentRecipient: string | null;
   instagram: string | null;
   telegram: string | null;
   email: string | null;
@@ -380,6 +389,9 @@ export async function getTournamentForEdit(
       logoImage: true,
       registrationType: true,
       externalUrl: true,
+      paymentMethod: true,
+      paymentAccount: true,
+      paymentRecipient: true,
       instagram: true,
       telegram: true,
       email: true,
@@ -425,6 +437,8 @@ export type TournamentParticipant = {
   experienceLevel: string | null;
   preferredLanguage: string | null;
   additionalInfo: string | null;
+  /** Чек об оплате взноса. Открывается только организатору/автору/админу. */
+  receiptUrl: string | null;
 };
 
 export type TournamentParticipantsResult = {
@@ -467,6 +481,7 @@ export async function listTournamentParticipants(
       experienceLevel: true,
       preferredLanguage: true,
       additionalInfo: true,
+      receiptUrl: true,
       user: {
         select: { id: true, firstName: true, lastName: true, email: true, image: true },
       },

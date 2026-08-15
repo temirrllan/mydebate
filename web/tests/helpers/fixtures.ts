@@ -53,6 +53,8 @@ export async function createTournament(overrides: {
   city?: string;
   format?: string;
   rejectionReason?: string | null;
+  /** Взнос в тенге. Больше нуля — при регистрации потребуется чек об оплате. */
+  price?: number;
 }) {
   const startsInDays = overrides.startsInDays ?? 30;
   const deadlineInDays = overrides.deadlineInDays ?? 20;
@@ -69,6 +71,7 @@ export async function createTournament(overrides: {
       registrationDeadline: daysFromToday(deadlineInDays),
       status: overrides.status ?? TournamentStatus.PUBLISHED,
       registrationType: RegistrationType.PLATFORM,
+      price: overrides.price ?? 0,
       rejectionReason: overrides.rejectionReason ?? null,
       organizerId: overrides.organizerId,
     },

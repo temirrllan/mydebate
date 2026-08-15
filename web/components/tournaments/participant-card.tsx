@@ -9,6 +9,7 @@ import {
   Award,
   MessageSquare,
   Calendar,
+  Receipt,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +110,25 @@ export function ParticipantCard({
             <p className="text-xs text-muted">Дополнительная информация</p>
             <p className="mt-0.5 text-ink">{participant.additionalInfo}</p>
           </div>
+        </div>
+      )}
+
+      {/* Чек об оплате. Открывается в новой вкладке — файл отдаёт маршрут с
+          проверкой прав (app/uploads/receipts/[filename]/route.ts), чужому по
+          этой ссылке придёт 404. */}
+      {participant.receiptUrl && (
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4 text-sm">
+          <span className="flex items-center gap-2 text-muted">
+            <Receipt size={15} className="shrink-0" /> Чек об оплате
+          </span>
+          <a
+            href={participant.receiptUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-brand-600 underline-offset-2 hover:underline"
+          >
+            Посмотреть
+          </a>
         </div>
       )}
     </Card>
