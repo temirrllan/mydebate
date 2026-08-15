@@ -13,7 +13,6 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { Role } from "@/lib/enums";
 
 // Публичные маршруты — доступны гостю без авторизации (spec §3: "View
 // landing" ✅ для Guest, плюс статические информационные страницы).
@@ -53,7 +52,9 @@ const TOURNAMENT_ACTION_PATTERNS = [
   /^\/tournaments\/[^/]+\/(register|edit|participants)(\/.*)?$/,
 ];
 
-// Только ADMIN (spec §3/§10: "Moderation" / "Manage users" — только Admin).
+// Админка. Здесь прокси проверяет только ФАКТ входа: гостя разворачивает на
+// /login, а вот подходит ли роль — решает requireAdmin() в
+// app/admin/layout.tsx, где роль читается из БД (см. комментарий ниже).
 const ADMIN_ONLY_PREFIXES = ["/admin"];
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
@@ -87,11 +88,16 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Авторизован, но не ADMIN, а маршрут админский -> отказ в доступе (403).
-  if (isAdminRoute && session.user.role !== Role.ADMIN) {
-    return NextResponse.redirect(new URL("/403", req.nextUrl));
-  }
-
+  // Роль здесь НЕ проверяем — намеренно. В JWT она попадает один раз, при
+  // входе (см. колбэк jwt в auth.ts), и дальше не обновляется. Из-за этого
+  // пользователь, которому только что выдали ADMIN, упирался в /403 до тех
+  // пор, пока не выйдет и не зайдёт заново, — а по базе он уже администратор.
+  //
+  // Отказ в доступе выдаёт requireAdmin() в app/admin/layout.tsx: он читает
+  // роль из БД на каждый рендер и отправляет чужих на /403. То есть проверка
+  // никуда не делась, просто выполняется там, где данные актуальны. Заодно
+  // это чинит и обратный случай: у снятого админа JWT ещё говорит ADMIN, и
+  // пропускала его как раз проверка здесь.
   return NextResponse.next();
 });
 
