@@ -4,6 +4,7 @@ import { MapPin, Calendar, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CoverPlaceholder } from "@/components/tournaments/cover-placeholder";
 import { FORMAT_LABEL, LEVEL_LABEL, formatDateRu, isRegistrationOpen } from "@/lib/format";
 
 export type TournamentCardData = {
@@ -14,9 +15,9 @@ export type TournamentCardData = {
   registrationDeadline: Date | string;
   format: string;
   level: string | null;
-  /** Путь к загруженной обложке (`/uploads/tournaments/...`) — не задана
-   * почти у всех сидовых турниров, поэтому карточка держит градиент-заглушку
-   * как fallback (см. рендер ниже, продуктовая недоделка #12). */
+  /** Путь к загруженной обложке (`/uploads/tournaments/...`). Если организатор
+   * её не загрузил — рисуем `CoverPlaceholder`: градиент по id + монограмма,
+   * чтобы карточка не выглядела как «картинка не подгрузилась». */
   coverImage?: string | null;
 };
 
@@ -38,20 +39,17 @@ export function TournamentCard({
 
   return (
     <Card className="group flex flex-col overflow-hidden transition-shadow hover:shadow-lg hover:shadow-navy-900/5">
-      <div className="relative h-40 overflow-hidden bg-gradient-to-br from-navy-800 to-brand-600">
+      <div className="relative h-40 overflow-hidden bg-navy-800">
         {tournament.coverImage ? (
           <Image
             src={tournament.coverImage}
             alt=""
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div
-            className="absolute inset-0 opacity-25 [background-image:radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] [background-size:16px_16px]"
-            aria-hidden="true"
-          />
+          <CoverPlaceholder seed={tournament.id} title={tournament.title} />
         )}
         <Badge tone={open ? "green" : "gray"} className="absolute left-3 top-3">
           {open ? "Регистрация открыта" : "Регистрация завершена"}
