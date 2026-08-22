@@ -28,6 +28,7 @@ export function RegisterForm({
   defaultEmail,
   defaultPhone = "",
   alreadyRegistered = false,
+  isMun = false,
   payment,
 }: {
   tournamentId: string;
@@ -37,6 +38,14 @@ export function RegisterForm({
   defaultEmail: string;
   defaultPhone?: string;
   alreadyRegistered?: boolean;
+  /**
+   * Турнир формата MUN. На таких участник регистрируется делегатом, а не
+   * командой, поэтому в блоке «Информация об участии» скрыты «Название
+   * команды» и «Имена тиммейтов»; всё остальное — как у дебатов. То же
+   * правило продублировано на сервере (lib/actions/registrations.ts): форма
+   * решает, что показать, а не что разрешено сохранить.
+   */
+  isMun?: boolean;
   /** Реквизиты оплаты. null — турнир бесплатный, блок оплаты не показываем. */
   payment?: {
     price: number;
@@ -239,42 +248,48 @@ export function RegisterForm({
         </div>
 
         <div className="mt-5 space-y-5">
-          <div>
-            <label htmlFor="teamName" className="text-sm font-medium text-ink">
-              Название команды <span className="text-rose-500">*</span>
-            </label>
-            <div className="mt-1.5">
-              <Input
-                id="teamName"
-                name="teamName"
-                required
-                placeholder="Введите название вашей команды"
-                invalid={Boolean(fieldErrors.teamName?.length)}
-                aria-invalid={Boolean(fieldErrors.teamName?.length)}
-                aria-describedby={fieldErrors.teamName?.length ? "teamName-error" : undefined}
-              />
-            </div>
-            <FieldError id="teamName-error" messages={fieldErrors.teamName} />
-          </div>
+          {/* Команда и тиммейты — только для дебатов: на MUN участник едет
+              делегатом, команд там нет. */}
+          {!isMun && (
+            <>
+              <div>
+                <label htmlFor="teamName" className="text-sm font-medium text-ink">
+                  Название команды <span className="text-rose-500">*</span>
+                </label>
+                <div className="mt-1.5">
+                  <Input
+                    id="teamName"
+                    name="teamName"
+                    required
+                    placeholder="Введите название вашей команды"
+                    invalid={Boolean(fieldErrors.teamName?.length)}
+                    aria-invalid={Boolean(fieldErrors.teamName?.length)}
+                    aria-describedby={fieldErrors.teamName?.length ? "teamName-error" : undefined}
+                  />
+                </div>
+                <FieldError id="teamName-error" messages={fieldErrors.teamName} />
+              </div>
 
-          <div>
-            <label htmlFor="teammateNames" className="text-sm font-medium text-ink">
-              Имена тиммейтов <span className="text-muted">(если командный формат)</span>
-            </label>
-            <div className="mt-1.5">
-              <textarea
-                id="teammateNames"
-                name="teammateNames"
-                rows={2}
-                placeholder="Введите имена ваших тиммейтов (через запятую)"
-                className="w-full rounded-[var(--radius-btn)] border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-                aria-describedby={
-                  fieldErrors.teammateNames?.length ? "teammateNames-error" : undefined
-                }
-              />
-            </div>
-            <FieldError id="teammateNames-error" messages={fieldErrors.teammateNames} />
-          </div>
+              <div>
+                <label htmlFor="teammateNames" className="text-sm font-medium text-ink">
+                  Имена тиммейтов <span className="text-muted">(если командный формат)</span>
+                </label>
+                <div className="mt-1.5">
+                  <textarea
+                    id="teammateNames"
+                    name="teammateNames"
+                    rows={2}
+                    placeholder="Введите имена ваших тиммейтов (через запятую)"
+                    className="w-full rounded-[var(--radius-btn)] border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                    aria-describedby={
+                      fieldErrors.teammateNames?.length ? "teammateNames-error" : undefined
+                    }
+                  />
+                </div>
+                <FieldError id="teammateNames-error" messages={fieldErrors.teammateNames} />
+              </div>
+            </>
+          )}
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div>

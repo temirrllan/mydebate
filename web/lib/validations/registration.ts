@@ -42,7 +42,15 @@ export const registrationSchema = z.object({
 
   // 2. Информация об участии (макет: Team Name обязателен, остальное —
   // опционально).
-  teamName: z.string().trim().min(1, { error: "Введите название команды" }).max(150),
+  //
+  // teamName здесь НЕобязателен, хотя в макете со звёздочкой: обязательность
+  // зависит от формата турнира. У дебатов команда есть всегда, у MUN команд
+  // нет вовсе — участник едет делегатом, поэтому форма не показывает ему ни
+  // названия команды, ни тиммейтов. Формат знает сервер, а не форма, и
+  // присланному клиентом признаку доверять нельзя, — так что проверка живёт
+  // в lib/actions/registrations.ts, рядом с такой же проверкой чека об
+  // оплате, которая зависит от цены.
+  teamName: z.string().trim().max(150).optional().or(z.literal("")),
   teammateNames: z.string().trim().max(500).optional().or(z.literal("")),
   experienceLevel: z
     .enum([Level.BEGINNER, Level.INTERMEDIATE, Level.ADVANCED])

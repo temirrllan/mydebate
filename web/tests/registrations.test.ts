@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { prisma } from "@/lib/prisma";
-import { Role, TournamentStatus, NotificationType } from "@/lib/enums";
+import { Role, TournamentStatus, NotificationType, TournamentFormat } from "@/lib/enums";
 import { registerForTournament, cancelRegistration } from "@/lib/actions/registrations";
 import { createTournament, createUser, loginAs, logout, resetDb } from "./helpers/fixtures";
 import { RedirectError } from "./setup";
@@ -45,6 +45,41 @@ describe("регистрация на турнир", () => {
       where: { userId: organizer.id, type: NotificationType.NEW_REGISTRATION },
     });
     expect(notification).not.toBeNull();
+  });
+
+  it("на MUN принимает заявку без команды и не сохраняет её поля", async () => {
+    // У MUN участник регистрируется делегатом, поэтому форма вообще не
+    // рендерит «Название команды» и «Имена тиммейтов» — formData приходит без
+    // них (см. app/tournaments/[id]/register/register-form.tsx).
+    const t = await createTournament({ organizerId: organizer.id, format: TournamentFormat.MUN });
+    loginAs(user);
+
+    const form = registrationForm();
+    form.delete("teamName");
+    form.set("teammateNames", "Айгерим, Данияр"); // подсунуто в обход формы
+
+    const result = await registerForTournament(t.id, undefined, form);
+
+    expect(result).toMatchObject({ success: true });
+    const reg = await prisma.registration.findFirst({ where: { tournamentId: t.id } });
+    expect(reg?.teamName).toBeNull();
+    expect(reg?.teammateNames).toBeNull();
+  });
+
+  it("на дебатах требует название команды", async () => {
+    const t = await createTournament({
+      organizerId: organizer.id,
+      format: TournamentFormat.DEBATES,
+    });
+    loginAs(user);
+
+    const form = registrationForm();
+    form.delete("teamName");
+
+    const result = await registerForTournament(t.id, undefined, form);
+
+    expect(result).toMatchObject({ fieldErrors: { teamName: ["Введите название команды"] } });
+    expect(await prisma.registration.count()).toBe(0);
   });
 
   it("требует чек об оплате, если турнир платный", async () => {

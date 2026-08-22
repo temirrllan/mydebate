@@ -17,7 +17,13 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireUser } from "@/lib/auth/session";
-import { TournamentStatus, NotificationType, Role, RegistrationType } from "@/lib/enums";
+import {
+  TournamentStatus,
+  NotificationType,
+  Role,
+  RegistrationType,
+  TournamentFormat,
+} from "@/lib/enums";
 import { isRegistrationOpen, REGISTRATION_SUCCESS_MESSAGE } from "@/lib/format";
 import { registrationSchema, registrationStatusSchema } from "@/lib/validations/registration";
 import { REG_STATUS_LABEL } from "@/lib/format";
@@ -59,7 +65,12 @@ export async function registerForTournament(
     schoolOrUniversity: formData.get("schoolOrUniversity"),
     phone: formData.get("phone"),
     contactEmail: formData.get("contactEmail"),
-    teamName: formData.get("teamName"),
+    // `?? ""`, а не голый get: на MUN форма этих полей не рендерит вовсе, и
+    // formData.get вернул бы null — zod-схема принимает строку, так что вся
+    // заявка заворачивалась бы с невнятным «Invalid input». Пустую строку
+    // схема пропускает, а обязательность для дебатов проверяется ниже, когда
+    // из БД уже известен формат турнира.
+    teamName: formData.get("teamName") ?? "",
     teammateNames: formData.get("teammateNames") ?? "",
     experienceLevel: formData.get("experienceLevel") ?? "",
     preferredLanguage: formData.get("preferredLanguage") ?? "",
@@ -82,6 +93,7 @@ export async function registerForTournament(
       organizerId: true,
       title: true,
       price: true,
+      format: true,
       registrationType: true,
       paymentAccount: true,
     },
@@ -95,6 +107,16 @@ export async function registerForTournament(
 
   if (!isRegistrationOpen(tournament.registrationDeadline)) {
     return { message: "Регистрация на этот турнир уже закрыта." };
+  }
+
+  // На MUN команды не заводят: участник регистрируется делегатом, поэтому
+  // форма прячет от него «Название команды» и «Имена тиммейтов» (см.
+  // register-form.tsx). На дебатах оба поля на месте, и название команды
+  // обязательно. Проверяем здесь, а не в zod-схеме, по той же причине, что и
+  // чек об оплате ниже: формат берём из БД, а не из присланной формы.
+  const isMun = tournament.format === TournamentFormat.MUN;
+  if (!isMun && !parsed.data.teamName) {
+    return { fieldErrors: { teamName: ["Введите название команды"] } };
   }
 
   // Чек обязателен для платного турнира с регистрацией на платформе — и
@@ -137,8 +159,11 @@ export async function registerForTournament(
         schoolOrUniversity: data.schoolOrUniversity,
         phone: data.phone,
         contactEmail: data.contactEmail,
-        teamName: data.teamName,
-        teammateNames: data.teammateNames || null,
+        // У MUN эти поля форма не показывает — обнуляем их принудительно,
+        // чтобы значения, подсунутые POST'ом в обход формы, не осели в базе
+        // и не всплыли потом в списке участников и в выгрузке.
+        teamName: isMun ? null : data.teamName,
+        teammateNames: isMun ? null : data.teammateNames || null,
         experienceLevel: data.experienceLevel || null,
         preferredLanguage: data.preferredLanguage,
         additionalInfo: data.additionalInfo || null,

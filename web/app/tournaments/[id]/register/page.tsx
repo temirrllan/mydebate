@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getTournamentDetail } from "@/lib/tournaments/queries";
 import { getMyRegistrations } from "@/lib/profile/queries";
 import { requireUser } from "@/lib/auth/session";
-import { RegistrationType, parseLanguages } from "@/lib/enums";
+import { RegistrationType, TournamentFormat, parseLanguages } from "@/lib/enums";
 import { FORMAT_LABEL, LOCATION_TYPE_LABEL, formatDateRu, formatPrice, isRegistrationOpen } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { RegisterForm } from "./register-form";
@@ -91,6 +91,7 @@ export default async function TournamentRegisterPage({
             defaultEmail={user.email}
             defaultPhone={profileFields?.phone ?? ""}
             alreadyRegistered={alreadyRegistered}
+            isMun={tournament.format === TournamentFormat.MUN}
             // Блок оплаты нужен только платному турниру, у которого ЕСТЬ
             // реквизиты. Турниры, созданные до появления этого поля, платные,
             // но переводить некуда — показывать пустой блок и требовать чек
