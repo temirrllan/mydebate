@@ -49,11 +49,18 @@ export function CoverPlaceholder({
   seed,
   title,
   className,
+  monogramClassName,
 }: {
   /** Устойчивый ключ (обычно id турнира) — от него зависит выбор градиента. */
   seed: string;
   title: string;
   className?: string;
+  /**
+   * Классы на монограмму. Нужны там, где заглушка лежит под текстом: в hero
+   * страницы турнира на узком экране монограмма оказывается ровно за
+   * заголовком и просвечивает сквозь него грязным пятном — её там прячут.
+   */
+  monogramClassName?: string;
 }) {
   const [from, to] = PALETTES[hash(seed) % PALETTES.length];
 
@@ -64,7 +71,7 @@ export function CoverPlaceholder({
       style={{ backgroundImage: `linear-gradient(135deg, ${from} 0%, ${to} 100%)` }}
     >
       <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] [background-size:18px_18px]" />
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className={`absolute inset-0 flex items-center justify-center ${monogramClassName ?? ""}`}>
         <span className="select-none text-5xl font-extrabold tracking-tight text-white/25 sm:text-6xl">
           {monogramOf(title)}
         </span>

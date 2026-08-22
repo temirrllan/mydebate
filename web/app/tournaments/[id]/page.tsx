@@ -190,7 +190,13 @@ export default async function TournamentDetailPage({
                 className="object-cover"
               />
             ) : (
-              <CoverPlaceholder seed={tournament.id} title={tournament.title} />
+              <CoverPlaceholder
+                seed={tournament.id}
+                title={tournament.title}
+                // До lg заглушка лежит прямо под заголовком, и монограмма
+                // просвечивает сквозь него; там оставляем только градиент.
+                monogramClassName="hidden lg:flex"
+              />
             )}
           </div>
           <div
