@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { NoPinchZoom } from "@/components/layout/no-pinch-zoom";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -12,6 +13,25 @@ const inter = Inter({
   subsets: ["latin", "cyrillic"],
   display: "swap",
 });
+
+// Запрет масштабирования щипком — по требованию заказчика: вёрстка
+// адаптивная, и случайный зум двумя пальцами на телефоне только сбивает
+// раскладку.
+//
+// ОГОВОРКА: этих полей достаточно для Chrome на Android, но Safari на iOS
+// с 10-й версии намеренно игнорирует и `user-scalable=no`, и
+// `maximum-scale` — именно чтобы страница не могла запретить зум. Там щипок
+// перехватывается уже в JS (components/layout/no-pinch-zoom.tsx).
+//
+// Учтите, что для человека со слабым зрением зум — способ прочитать мелкий
+// текст. Мы его отключаем, поэтому размеры шрифтов ниже 14px в интерфейсе
+// заводить не стоит: увеличить их пользователь больше не сможет.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   // Без metadataBase все относительные ссылки в превью (og:image и прочее)
@@ -76,6 +96,7 @@ export default async function RootLayout({
         >
           Перейти к содержимому
         </a>
+        <NoPinchZoom />
         <Navbar user={user} unreadNotifications={unreadNotifications} />
         <main id="main" className="flex-1">
           {children}
