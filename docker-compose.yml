@@ -33,6 +33,14 @@ services:
   # Разовая задача: применяет миграции и завершается. Приложение стартует
   # только после её успеха, поэтому оно никогда не видит устаревшую схему.
   migrate:
+    # Готовый образ из GHCR — его собирает GitHub Actions при пуше в main
+    # (.github/workflows/deploy.yml). Сборка Next на этом VPS занимала 45+
+    # минут и упиралась в память, поэтому сервер её больше не делает: он
+    # только скачивает. Тег подставляет deploy/update.sh (коммит), локально
+    # без переменной берётся latest.
+    image: ghcr.io/temirrllan/mydebate/migrate:${IMAGE_TAG:-latest}
+    # Секция build оставлена намеренно: `docker compose up -d --build`
+    # по-прежнему собирает всё локально, если образа нет или нужна отладка.
     build:
       context: ./web
       target: migrator
@@ -44,6 +52,7 @@ services:
 
   # --- Приложение ----------------------------------------------------------
   web:
+    image: ghcr.io/temirrllan/mydebate/web:${IMAGE_TAG:-latest}
     build:
       context: ./web
       target: runner

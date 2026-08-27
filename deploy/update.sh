@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# Обновление приложения на сервере: подтянуть main и пересобрать контейнеры.
+# Обновление приложения на сервере: забрать готовые образы и перезапустить.
+#
+# Сборка происходит НЕ здесь: образы собирает GitHub Actions и кладёт в GHCR
+# (.github/workflows/deploy.yml). На этом VPS `next build` занимал 45+ минут
+# и выедал всю память, из-за чего сайт во время деплоя еле отвечал.
 #
 # Запускается двумя способами и в обоих делает одно и то же:
-#   - автоматически из GitHub Actions после пуша в main
-#     (.github/workflows/deploy.yml передаёт этот файл в `ssh bash -s`);
-#   - руками на сервере: `cd ~/mydebate && ./deploy/update.sh`.
+#   - автоматически из GitHub Actions после пуша в main;
+#   - руками на сервере: `cd ~/mydebate && ./deploy/update.sh`
+#     (возьмёт тег latest — образ последнего успешного пуша в main).
 #
-# Миграции применять отдельно не нужно: сервис `migrate` из docker-compose.yml
-# отрабатывает до старта нового `web`, поэтому приложение никогда не видит
-# устаревшую схему.
+# Миграции применять отдельно не нужно: сервис `migrate` отрабатывает до
+# старта нового `web`, поэтому приложение никогда не видит устаревшую схему.
 
 set -euo pipefail
 
@@ -24,8 +27,22 @@ git fetch --prune origin
 # их. Разбираться в такой ситуации нужно руками.
 git merge --ff-only origin/main
 
-echo "==> Пересобираем и поднимаем контейнеры"
-docker compose up -d --build
+# Какой образ разворачиваем. Workflow передаёт SHA коммита — так на сервере
+# видно, что именно запущено, и можно откатиться на предыдущий тег. Значение
+# пишем в .env: docker compose читает его при подстановке ${IMAGE_TAG}, и
+# следующий ручной `docker compose up -d` поднимет ту же версию, а не latest.
+IMAGE_TAG="${IMAGE_TAG:-latest}"
+if grep -q '^IMAGE_TAG=' .env 2>/dev/null; then
+  sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" .env
+else
+  printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG" >> .env
+fi
+
+echo "==> Скачиваем образы ($IMAGE_TAG)"
+docker compose pull --quiet migrate web
+
+echo "==> Перезапускаем"
+docker compose up -d
 
 echo "==> Логи миграций"
 docker compose logs --no-log-prefix migrate | tail -20
@@ -33,8 +50,8 @@ docker compose logs --no-log-prefix migrate | tail -20
 echo "==> Состояние"
 docker compose ps
 
-# Пересборка каждый раз оставляет предыдущий образ висеть без тега. На диске
-# VPS это быстро превращается в десятки гигабайт.
+# Каждый деплой оставляет предыдущий образ без тега. На диске VPS это быстро
+# превращается в десятки гигабайт (у нас уже было 80% занято).
 docker image prune -f >/dev/null
 
 # Контейнер `web` стартует только после успешных миграций. Если он не поднялся,

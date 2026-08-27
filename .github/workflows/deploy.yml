@@ -1,11 +1,15 @@
-# Автодеплой: после пуша в main GitHub подключается к серверу по SSH и
-# запускает deploy/update.sh (git pull + docker compose up -d --build).
-# Заходить на сервер руками больше не нужно.
+# Автодеплой: пуш в main → GitHub собирает образы, кладёт их в GHCR и по SSH
+# просит сервер их скачать. Заходить на сервер руками не нужно.
+#
+# Почему сборка здесь, а не на сервере: `next build` на VPS с 2 ГБ занимал 45+
+# минут, конкурировал за память с работающим сайтом и регулярно не доживал до
+# конца. Раннер GitHub делает это за считаные минуты, а серверу остаётся
+# `docker compose pull && up -d` — секунды.
 #
 # Что должно быть заведено в настройках репозитория
 # (Settings → Secrets and variables → Actions → New repository secret):
 #   DEPLOY_HOST        — IP или домен сервера
-#   DEPLOY_USER        — пользователь SSH (root или отдельный deploy)
+#   DEPLOY_USER        — пользователь SSH (у нас ubuntu)
 #   DEPLOY_SSH_KEY     — ПРИВАТНЫЙ ключ отдельной пары, целиком, вместе со
 #                        строками BEGIN/END. Публичный лежит на сервере в
 #                        ~/.ssh/authorized_keys
@@ -20,8 +24,8 @@ name: Deploy
 on:
   push:
     branches: [main]
-    # Заметки Obsidian и макеты лежат в этом же репозитории. Пересобирать
-    # из-за них приложение (несколько минут сборки Next на 2 ГБ VPS) незачем.
+    # Заметки Obsidian и макеты лежат в этом же репозитории. Гонять из-за них
+    # сборку и перезапуск сайта незачем.
     paths-ignore:
       - "**.md"
       - "notes/**"
@@ -30,21 +34,71 @@ on:
   workflow_dispatch:
 
 # Два деплоя одновременно на одном сервере подрались бы за docker compose.
-# Новый ждёт завершения предыдущего, а не отменяет его: прерванная сборка
-# оставила бы сервер в непонятном состоянии.
+# Новый ждёт завершения предыдущего, а не отменяет его: прерванный деплой
+# оставил бы сервер в непонятном состоянии.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    # Сборка образа идёт на сервере и занимает минуты; при этом залипший SSH
-    # не должен держать job вечно.
-    timeout-minutes: 30
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      # Право писать в GHCR от имени встроенного GITHUB_TOKEN — отдельный
+      # токен и пароль для реестра заводить не нужно.
+      packages: write
     steps:
-      # Код нужен только ради самого скрипта деплоя — берём последний коммит
-      # без истории. Всё остальное сервер подтянет себе сам.
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Войти в GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Два образа из одного Dockerfile: web (стадия runner) и migrate
+      # (стадия migrator). Собираются в одном job подряд, поэтому тяжёлая
+      # общая стадия builder считается один раз и переиспользуется.
+      - name: Собрать и запушить web
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          target: runner
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/web:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/web:${{ github.sha }}
+          # Кэш слоёв между запусками: без него каждый деплой заново ставил бы
+          # зависимости (npm ci — это минуты даже на раннере).
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Собрать и запушить migrate
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          target: migrator
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/migrate:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/migrate:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Код нужен только ради самого скрипта деплоя — берём последний коммит.
       - uses: actions/checkout@v4
 
       - name: Настроить SSH-ключ
@@ -62,7 +116,9 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         # Скрипт передаём на stdin, а не берём с сервера: разворачивается
         # ровно та версия update.sh, которая только что попала в main.
+        # IMAGE_TAG — SHA этого коммита: сервер поднимет именно те образы,
+        # которые собрал job выше, а не «какой-то latest».
         run: |
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" < deploy/update.sh
+            "DEPLOY_PATH='${DEPLOY_PATH}' IMAGE_TAG='${{ github.sha }}' bash -s" < deploy/update.sh

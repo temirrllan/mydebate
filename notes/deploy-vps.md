@@ -154,20 +154,24 @@ cd ~/mydebate
 ./deploy/update.sh
 ```
 
-Скрипт делает `git merge --ff-only origin/main`, пересобирает контейнеры, показывает логи миграций и чистит старые образы. Голые `git pull && docker compose up -d --build` тоже работают — скрипт просто добавляет проверки.
+Скрипт подтягивает `main`, скачивает готовые образы из GHCR и перезапускает контейнеры — минута вместо часа.
 
-Миграции применятся автоматически: `migrate` отработает до старта нового `web`. Данные и картинки лежат на томах, пересборка их не трогает.
+**Сборка на сервере больше не выполняется.** `next build` на этом VPS (2 vCPU, 2 ГБ) занимал 45+ минут, конкурировал за память с работающим сайтом и не всегда доживал до конца. Образы собирает GitHub Actions, сервер их только скачивает. Локально `docker compose up -d --build` по-прежнему работает: секции `build` в compose оставлены.
+
+Миграции применятся автоматически: `migrate` отработает до старта нового `web`. Данные и картинки лежат на томах, обновление их не трогает.
+
+Какая версия запущена — видно в `.env`: `deploy/update.sh` пишет туда `IMAGE_TAG` (SHA коммита). Откат — поставить там предыдущий SHA и выполнить `docker compose up -d`.
 
 ### Автодеплой по пушу в main
 
-Настроен в `.github/workflows/deploy.yml`: после каждого пуша в `main` GitHub сам подключается к серверу по SSH и запускает тот же `deploy/update.sh`. Заходить на сервер не нужно, ход деплоя виден на вкладке **Actions**.
+Настроен в `.github/workflows/deploy.yml`: после каждого пуша в `main` GitHub собирает образы, кладёт в GHCR и по SSH запускает на сервере `deploy/update.sh`. Заходить на сервер не нужно, ход деплоя виден на вкладке **Actions**.
 
 Разовая настройка — отдельный SSH-ключ **только для деплоя** (не тот, которым вы заходите сами):
 
 ```bash
 # на своём компьютере
 ssh-keygen -t ed25519 -f ~/.ssh/mydebate_deploy -C "github-actions-deploy" -N ""
-ssh-copy-id -i ~/.ssh/mydebate_deploy.pub root@IP-СЕРВЕРА
+ssh-copy-id -i ~/.ssh/mydebate_deploy.pub ubuntu@IP-СЕРВЕРА
 ssh-keyscan IP-СЕРВЕРА            # строки для DEPLOY_KNOWN_HOSTS
 ```
 
@@ -176,7 +180,7 @@ ssh-keyscan IP-СЕРВЕРА            # строки для DEPLOY_KNOWN_HOST
 | Секрет | Значение |
 | --- | --- |
 | `DEPLOY_HOST` | IP или домен сервера |
-| `DEPLOY_USER` | пользователь SSH (`root` или отдельный `deploy`) |
+| `DEPLOY_USER` | пользователь SSH (у нас `ubuntu`) |
 | `DEPLOY_SSH_KEY` | содержимое `~/.ssh/mydebate_deploy` (приватный ключ целиком, вместе со строками BEGIN/END) |
 | `DEPLOY_KNOWN_HOSTS` | вывод `ssh-keyscan IP-СЕРВЕРА` |
 | `DEPLOY_PATH` | необязательно; каталог с `docker-compose.yml`, если это не `~/mydebate` |
