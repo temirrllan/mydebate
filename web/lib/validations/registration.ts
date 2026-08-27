@@ -56,7 +56,14 @@ export const registrationSchema = z.object({
     .enum([Level.BEGINNER, Level.INTERMEDIATE, Level.ADVANCED])
     .optional()
     .or(z.literal("")),
-  preferredLanguage: z.string().trim().min(1, { error: "Выберите язык" }).max(50),
+  // Язык и комитет — взаимоисключающая пара, зависящая от формата турнира:
+  // у дебатов форма показывает «Предпочитаемый язык», у MUN вместо него —
+  // «Выбор комитета» (список разделов турнира). Оба поля здесь
+  // необязательны по той же причине, что и teamName выше: формат знает
+  // сервер, а не форма, поэтому обязательность проверяется в
+  // lib/actions/registrations.ts, где формат уже прочитан из БД.
+  preferredLanguage: z.string().trim().max(50).optional().or(z.literal("")),
+  committee: z.string().trim().max(150).optional().or(z.literal("")),
   additionalInfo: z.string().trim().max(500).optional().or(z.literal("")),
 
   // 3. Подтверждение оплаты. Путь чека, уже загруженного через

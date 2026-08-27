@@ -39,6 +39,8 @@ const COLUMNS: { header: string; value: (p: Participant) => string }[] = [
     value: (p) => (p.experienceLevel ? LEVEL_LABEL[p.experienceLevel] ?? p.experienceLevel : ""),
   },
   { header: "Язык", value: (p) => p.preferredLanguage ?? "" },
+  // Комитет заполнен только у заявок на MUN — там, где у дебатов язык.
+  { header: "Комитет", value: (p) => p.committee ?? "" },
   { header: "Доп. информация", value: (p) => p.additionalInfo ?? "" },
   // Оплата: в выгрузке достаточно отметки — сам файл открывается из карточки
   // участника на сайте, где работает проверка прав. Складывать в CSV прямую

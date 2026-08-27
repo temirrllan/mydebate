@@ -82,6 +82,93 @@ describe("регистрация на турнир", () => {
     expect(await prisma.registration.count()).toBe(0);
   });
 
+  it("на MUN сохраняет выбранный комитет вместо языка", async () => {
+    // На MUN «Предпочитаемый язык» неактуален — форма вместо него показывает
+    // «Выбор комитета» со списком разделов турнира
+    // (app/tournaments/[id]/register/register-form.tsx).
+    const t = await createTournament({ organizerId: organizer.id, format: TournamentFormat.MUN });
+    await prisma.tournamentSection.createMany({
+      data: [
+        { tournamentId: t.id, title: "UNEP", description: "Экология.", order: 0 },
+        { tournamentId: t.id, title: "UNICEF", description: "Дети.", order: 1 },
+      ],
+    });
+    loginAs(user);
+
+    const form = registrationForm({ committee: "UNICEF" });
+    form.delete("teamName");
+    form.set("preferredLanguage", "Русский"); // подсунуто в обход формы
+
+    const result = await registerForTournament(t.id, undefined, form);
+
+    expect(result).toMatchObject({ success: true });
+    const reg = await prisma.registration.findFirst({ where: { tournamentId: t.id } });
+    expect(reg?.committee).toBe("UNICEF");
+    expect(reg?.preferredLanguage).toBeNull();
+  });
+
+  it("на MUN с разделами требует комитет и не принимает чужой", async () => {
+    const t = await createTournament({ organizerId: organizer.id, format: TournamentFormat.MUN });
+    await prisma.tournamentSection.create({
+      data: { tournamentId: t.id, title: "CRISIS", description: "Кризисный комитет.", order: 0 },
+    });
+    loginAs(user);
+
+    const withoutCommittee = registrationForm();
+    withoutCommittee.delete("teamName");
+    expect(await registerForTournament(t.id, undefined, withoutCommittee)).toMatchObject({
+      fieldErrors: { committee: ["Выберите комитет"] },
+    });
+
+    // Комитета «Security Council» у этого турнира нет — значение подделано
+    // POST'ом в обход формы.
+    const foreign = registrationForm({ committee: "Security Council" });
+    foreign.delete("teamName");
+    expect(await registerForTournament(t.id, undefined, foreign)).toMatchObject({
+      fieldErrors: { committee: ["Выберите комитет из списка"] },
+    });
+
+    expect(await prisma.registration.count()).toBe(0);
+  });
+
+  it("на MUN без разделов не требует комитет", async () => {
+    // Разделы необязательны при создании турнира — выбирать не из чего, и
+    // форма поля не показывает; регистрация должна остаться возможной.
+    const t = await createTournament({ organizerId: organizer.id, format: TournamentFormat.MUN });
+    loginAs(user);
+
+    const form = registrationForm();
+    form.delete("teamName");
+
+    expect(await registerForTournament(t.id, undefined, form)).toMatchObject({ success: true });
+    const reg = await prisma.registration.findFirst({ where: { tournamentId: t.id } });
+    expect(reg?.committee).toBeNull();
+  });
+
+  it("на дебатах требует язык и не сохраняет комитет", async () => {
+    const t = await createTournament({
+      organizerId: organizer.id,
+      format: TournamentFormat.DEBATES,
+    });
+    loginAs(user);
+
+    const withoutLanguage = registrationForm();
+    withoutLanguage.delete("preferredLanguage");
+    expect(await registerForTournament(t.id, undefined, withoutLanguage)).toMatchObject({
+      fieldErrors: { preferredLanguage: ["Выберите язык"] },
+    });
+
+    const result = await registerForTournament(
+      t.id,
+      undefined,
+      registrationForm({ committee: "UNEP" }), // подсунуто в обход формы
+    );
+    expect(result).toMatchObject({ success: true });
+    const reg = await prisma.registration.findFirst({ where: { tournamentId: t.id } });
+    expect(reg?.committee).toBeNull();
+    expect(reg?.preferredLanguage).toBe("Русский");
+  });
+
   it("требует чек об оплате, если турнир платный", async () => {
     const t = await createTournament({ organizerId: organizer.id, price: 5000 });
     loginAs(user);

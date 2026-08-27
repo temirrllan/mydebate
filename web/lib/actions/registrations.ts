@@ -73,7 +73,10 @@ export async function registerForTournament(
     teamName: formData.get("teamName") ?? "",
     teammateNames: formData.get("teammateNames") ?? "",
     experienceLevel: formData.get("experienceLevel") ?? "",
+    // Язык и комитет — тоже `?? ""`: форма показывает ровно одно из двух
+    // полей в зависимости от формата турнира (см. register-form.tsx).
     preferredLanguage: formData.get("preferredLanguage") ?? "",
+    committee: formData.get("committee") ?? "",
     additionalInfo: formData.get("additionalInfo") ?? "",
     receiptUrl: formData.get("receiptUrl") ?? "",
     agree: formData.get("agree") === "on",
@@ -96,6 +99,9 @@ export async function registerForTournament(
       format: true,
       registrationType: true,
       paymentAccount: true,
+      // Разделы MUN — это и есть список комитетов, из которых участник
+      // выбирает (organizer задаёт их при создании турнира).
+      sections: { select: { title: true } },
     },
   });
 
@@ -117,6 +123,29 @@ export async function registerForTournament(
   const isMun = tournament.format === TournamentFormat.MUN;
   if (!isMun && !parsed.data.teamName) {
     return { fieldErrors: { teamName: ["Введите название команды"] } };
+  }
+
+  // Язык vs комитет. На дебатах участник выбирает язык, на MUN — комитет из
+  // разделов турнира; форма показывает ровно одно поле, но решает это она, а
+  // не клиентские данные, поэтому здесь ещё раз сверяемся с форматом из БД.
+  //
+  // Комитет требуем, только если организатор вообще завёл разделы: они
+  // необязательны при создании турнира (lib/validations/tournament.ts), и без
+  // них выбирать не из чего — форма поле не покажет, а регистрация должна
+  // остаться возможной.
+  const committees = isMun ? tournament.sections.map((s) => s.title) : [];
+  if (!isMun && !parsed.data.preferredLanguage) {
+    return { fieldErrors: { preferredLanguage: ["Выберите язык"] } };
+  }
+  if (isMun && committees.length > 0) {
+    if (!parsed.data.committee) {
+      return { fieldErrors: { committee: ["Выберите комитет"] } };
+    }
+    // Значение приходит из formData, то есть подделывается POST'ом в обход
+    // формы — принимаем только реально существующий комитет этого турнира.
+    if (!committees.includes(parsed.data.committee)) {
+      return { fieldErrors: { committee: ["Выберите комитет из списка"] } };
+    }
   }
 
   // Чек обязателен для платного турнира с регистрацией на платформе — и
@@ -165,7 +194,11 @@ export async function registerForTournament(
         teamName: isMun ? null : data.teamName,
         teammateNames: isMun ? null : data.teammateNames || null,
         experienceLevel: data.experienceLevel || null,
-        preferredLanguage: data.preferredLanguage,
+        // Ровно одно из двух — по формату турнира (см. проверку выше):
+        // лишнее обнуляем, чтобы подсунутое в обход формы значение не осело
+        // в базе и не всплыло в списке участников и выгрузке.
+        preferredLanguage: isMun ? null : data.preferredLanguage,
+        committee: isMun ? data.committee || null : null,
         additionalInfo: data.additionalInfo || null,
         receiptUrl: data.receiptUrl || null,
       },

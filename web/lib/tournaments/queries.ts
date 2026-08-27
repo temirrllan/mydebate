@@ -435,7 +435,10 @@ export type TournamentParticipant = {
   teamName: string | null;
   teammateNames: string | null;
   experienceLevel: string | null;
+  /** Язык — у дебатов; на MUN вместо него заполнен committee. */
   preferredLanguage: string | null;
+  /** Комитет MUN — заголовок раздела турнира, выбранный участником. */
+  committee: string | null;
   additionalInfo: string | null;
   /** Чек об оплате взноса. Открывается только организатору/автору/админу. */
   receiptUrl: string | null;
@@ -480,6 +483,7 @@ export async function listTournamentParticipants(
       teammateNames: true,
       experienceLevel: true,
       preferredLanguage: true,
+      committee: true,
       additionalInfo: true,
       receiptUrl: true,
       user: {

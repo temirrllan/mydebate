@@ -239,7 +239,14 @@ model Registration {
   teammateNames      String?
   // experienceLevel: BEGINNER | INTERMEDIATE | ADVANCED (см. lib/enums.ts Level), опционально
   experienceLevel    String?
+  // preferredLanguage — только у дебатов: на MUN вместо языка участник
+  // выбирает комитет (см. committee ниже), и форма поля языка не показывает.
   preferredLanguage  String?
+  // Комитет MUN — заголовок одного из TournamentSection этого турнира
+  // (UNHRC, WHO, …). Храним строкой, а не связью: разделы организатор может
+  // потом переименовать или удалить, а заявка должна остаться снимком того,
+  // что участник выбрал при подаче (как и остальные поля анкеты).
+  committee          String?
   additionalInfo     String?
 
   // Чек об оплате взноса (макет, блок «3. Подтверждение оплаты»). Путь вида

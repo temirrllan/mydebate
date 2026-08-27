@@ -87,6 +87,10 @@ export default async function TournamentRegisterPage({
             tournamentId={tournament.id}
             tournamentTitle={tournament.title}
             languages={parseLanguages(tournament.languages)}
+            // Комитеты MUN — те же «Разделы турнира», которые организатор
+            // завёл при создании (getTournamentDetail отдаёт их уже
+            // отсортированными по order).
+            committees={tournament.sections.map((s) => s.title)}
             defaultFullName={`${user.firstName} ${user.lastName}`.trim()}
             defaultEmail={user.email}
             defaultPhone={profileFields?.phone ?? ""}

@@ -24,6 +24,7 @@ export function RegisterForm({
   tournamentId,
   tournamentTitle,
   languages,
+  committees = [],
   defaultFullName,
   defaultEmail,
   defaultPhone = "",
@@ -34,6 +35,12 @@ export function RegisterForm({
   tournamentId: string;
   tournamentTitle: string;
   languages: string[];
+  /**
+   * Комитеты MUN — заголовки разделов турнира, которые организатор завёл при
+   * создании (UNHRC, WHO, UNEP, …). Используются только при isMun; пустой
+   * список означает, что разделов у турнира нет и выбирать не из чего.
+   */
+  committees?: string[];
   defaultFullName: string;
   defaultEmail: string;
   defaultPhone?: string;
@@ -41,9 +48,11 @@ export function RegisterForm({
   /**
    * Турнир формата MUN. На таких участник регистрируется делегатом, а не
    * командой, поэтому в блоке «Информация об участии» скрыты «Название
-   * команды» и «Имена тиммейтов»; всё остальное — как у дебатов. То же
-   * правило продублировано на сервере (lib/actions/registrations.ts): форма
-   * решает, что показать, а не что разрешено сохранить.
+   * команды» и «Имена тиммейтов», а вместо «Предпочитаемого языка» стоит
+   * «Выбор комитета» (список из `committees`); всё остальное — как у
+   * дебатов. То же правило продублировано на сервере
+   * (lib/actions/registrations.ts): форма решает, что показать, а не что
+   * разрешено сохранить.
    */
   isMun?: boolean;
   /** Реквизиты оплаты. null — турнир бесплатный, блок оплаты не показываем. */
@@ -316,34 +325,72 @@ export function RegisterForm({
               <FieldError id="experienceLevel-error" messages={fieldErrors.experienceLevel} />
             </div>
 
-            <div>
-              <label htmlFor="preferredLanguage" className="text-sm font-medium text-ink">
-                Предпочитаемый язык <span className="text-rose-500">*</span>
-              </label>
-              <div className="mt-1.5">
-                <Select
-                  id="preferredLanguage"
-                  name="preferredLanguage"
-                  required
-                  defaultValue=""
-                  invalid={Boolean(fieldErrors.preferredLanguage?.length)}
-                  aria-invalid={Boolean(fieldErrors.preferredLanguage?.length)}
-                  aria-describedby={
-                    fieldErrors.preferredLanguage?.length ? "preferredLanguage-error" : undefined
-                  }
-                >
-                  <option value="" disabled>
-                    Выберите язык
-                  </option>
-                  {(languages.length > 0 ? languages : ["Казакша", "Русский", "English"]).map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang}
+            {/* Язык или комитет — ровно одно поле, по формату турнира. На MUN
+                язык неактуален: делегату важно попасть в конкретный комитет,
+                а комитеты — это разделы, заданные организатором при создании
+                турнира. Если разделов нет, выбирать не из чего — поле не
+                показываем (сервер его в этом случае и не требует). */}
+            {isMun ? (
+              committees.length > 0 && (
+                <div>
+                  <label htmlFor="committee" className="text-sm font-medium text-ink">
+                    Выбор комитета <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="mt-1.5">
+                    <Select
+                      id="committee"
+                      name="committee"
+                      required
+                      defaultValue=""
+                      invalid={Boolean(fieldErrors.committee?.length)}
+                      aria-invalid={Boolean(fieldErrors.committee?.length)}
+                      aria-describedby={
+                        fieldErrors.committee?.length ? "committee-error" : undefined
+                      }
+                    >
+                      <option value="" disabled>
+                        Выберите комитет
+                      </option>
+                      {committees.map((committee) => (
+                        <option key={committee} value={committee}>
+                          {committee}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <FieldError id="committee-error" messages={fieldErrors.committee} />
+                </div>
+              )
+            ) : (
+              <div>
+                <label htmlFor="preferredLanguage" className="text-sm font-medium text-ink">
+                  Предпочитаемый язык <span className="text-rose-500">*</span>
+                </label>
+                <div className="mt-1.5">
+                  <Select
+                    id="preferredLanguage"
+                    name="preferredLanguage"
+                    required
+                    defaultValue=""
+                    invalid={Boolean(fieldErrors.preferredLanguage?.length)}
+                    aria-invalid={Boolean(fieldErrors.preferredLanguage?.length)}
+                    aria-describedby={
+                      fieldErrors.preferredLanguage?.length ? "preferredLanguage-error" : undefined
+                    }
+                  >
+                    <option value="" disabled>
+                      Выберите язык
                     </option>
-                  ))}
-                </Select>
+                    {(languages.length > 0 ? languages : ["Казакша", "Русский", "English"]).map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <FieldError id="preferredLanguage-error" messages={fieldErrors.preferredLanguage} />
               </div>
-              <FieldError id="preferredLanguage-error" messages={fieldErrors.preferredLanguage} />
-            </div>
+            )}
           </div>
 
           <div>

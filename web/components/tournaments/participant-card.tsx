@@ -6,6 +6,7 @@ import {
   School,
   Users2,
   Languages,
+  Landmark,
   Award,
   MessageSquare,
   Calendar,
@@ -62,6 +63,10 @@ export function ParticipantCard({
   }
   if (participant.preferredLanguage) {
     rows.push({ icon: Languages, label: "Язык", value: participant.preferredLanguage });
+  }
+  // Комитет вместо языка — заявка на MUN (см. register-form.tsx).
+  if (participant.committee) {
+    rows.push({ icon: Landmark, label: "Комитет", value: participant.committee });
   }
 
   return (
