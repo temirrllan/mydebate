@@ -1,0 +1,68 @@
+# Автодеплой: после пуша в main GitHub подключается к серверу по SSH и
+# запускает deploy/update.sh (git pull + docker compose up -d --build).
+# Заходить на сервер руками больше не нужно.
+#
+# Что должно быть заведено в настройках репозитория
+# (Settings → Secrets and variables → Actions → New repository secret):
+#   DEPLOY_HOST        — IP или домен сервера
+#   DEPLOY_USER        — пользователь SSH (root или отдельный deploy)
+#   DEPLOY_SSH_KEY     — ПРИВАТНЫЙ ключ отдельной пары, целиком, вместе со
+#                        строками BEGIN/END. Публичный лежит на сервере в
+#                        ~/.ssh/authorized_keys
+#   DEPLOY_KNOWN_HOSTS — строка публичного ключа сервера из `ssh-keyscan IP`
+#                        (защита от подмены сервера: без неё Actions доверяет
+#                        любому хосту, который ответит по этому адресу)
+#   DEPLOY_PATH        — необязательно; каталог с docker-compose.yml на
+#                        сервере, если это не ~/mydebate
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    # Заметки Obsidian и макеты лежат в этом же репозитории. Пересобирать
+    # из-за них приложение (несколько минут сборки Next на 2 ГБ VPS) незачем.
+    paths-ignore:
+      - "**.md"
+      - "notes/**"
+      - "maket/**"
+  # Кнопка «Run workflow» на вкладке Actions — переразвернуть без пуша.
+  workflow_dispatch:
+
+# Два деплоя одновременно на одном сервере подрались бы за docker compose.
+# Новый ждёт завершения предыдущего, а не отменяет его: прерванная сборка
+# оставила бы сервер в непонятном состоянии.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Сборка образа идёт на сервере и занимает минуты; при этом залипший SSH
+    # не должен держать job вечно.
+    timeout-minutes: 30
+    steps:
+      # Код нужен только ради самого скрипта деплоя — берём последний коммит
+      # без истории. Всё остальное сервер подтянет себе сам.
+      - uses: actions/checkout@v4
+
+      - name: Настроить SSH-ключ
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Обновить приложение на сервере
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        # Скрипт передаём на stdin, а не берём с сервера: разворачивается
+        # ровно та версия update.sh, которая только что попала в main.
+        run: |
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" < deploy/update.sh
