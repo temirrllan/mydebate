@@ -24,20 +24,20 @@ const receiptUrlSchema = z
   .trim()
   .max(300)
   .refine((val) => !val || /^\/uploads\/receipts\/[a-f0-9-]{36}\.(jpg|png|webp|pdf)$/i.test(val), {
-    error: "Некорректная ссылка на чек",
+    error: "receiptUrlInvalid",
   });
 
 export const registrationSchema = z.object({
   // 1. Личная информация (макет: Full Name / Grade-Course / School-University
   // / Phone Number / Email Address — все обязательны).
-  fullName: z.string().trim().min(1, { error: "Введите ваше имя" }).max(150),
-  gradeOrCourse: z.string().trim().min(1, { error: "Укажите класс или курс" }).max(100),
+  fullName: z.string().trim().min(1, { error: "fullNameRequired" }).max(150),
+  gradeOrCourse: z.string().trim().min(1, { error: "gradeRequired" }).max(100),
   schoolOrUniversity: z
     .string()
     .trim()
-    .min(1, { error: "Укажите школу или университет" })
+    .min(1, { error: "schoolRequired" })
     .max(200),
-  phone: z.string().trim().min(1, { error: "Введите номер телефона" }).max(30),
+  phone: z.string().trim().min(1, { error: "phoneRequired" }).max(30),
   contactEmail: emailSchema,
 
   // 2. Информация об участии (макет: Team Name обязателен, остальное —
@@ -80,7 +80,7 @@ export const registrationSchema = z.object({
   // registerSchema из lib/validations/auth.ts).
   agree: z
     .boolean()
-    .refine((v) => v === true, { error: "Необходимо подтвердить согласие с условиями" }),
+    .refine((v) => v === true, { error: "agreeTerms" }),
 });
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;
@@ -98,5 +98,5 @@ export const registrationStatusSchema = z.enum(
     RegistrationStatus.WAITLIST,
     RegistrationStatus.REJECTED,
   ],
-  { error: "Некорректный статус заявки" },
+  { error: "registrationStatusInvalid" },
 );

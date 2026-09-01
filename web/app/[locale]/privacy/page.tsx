@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { LegalLanguageNotice } from "@/components/ui/legal-language-notice";
 
 export const metadata: Metadata = { title: "Политика конфиденциальности" };
 
@@ -12,6 +13,8 @@ export default function PrivacyPage() {
           items={[{ label: "Главная", href: "/" }, { label: "Политика конфиденциальности" }]}
           className="mb-8"
         />
+
+        <LegalLanguageNotice />
 
         <h1 className="max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-navy-900 sm:text-4xl">
           Политика конфиденциальности

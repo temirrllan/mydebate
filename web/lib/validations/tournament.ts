@@ -20,11 +20,11 @@ import { TournamentFormat, LocationType, Level, RegistrationType } from "@/lib/e
 const dateInputSchema = z
   .string()
   .trim()
-  .min(1, { error: "Укажите дату" })
+  .min(1, { error: "dateRequired" })
   .transform((val, ctx) => {
     const d = new Date(val);
     if (Number.isNaN(d.getTime())) {
-      ctx.addIssue({ code: "custom", message: "Некорректная дата" });
+      ctx.addIssue({ code: "custom", message: "dateInvalid" });
       return z.NEVER;
     }
     return d;
@@ -40,7 +40,7 @@ const optionalDateInputSchema = z
     if (!val) return undefined;
     const d = new Date(val);
     if (Number.isNaN(d.getTime())) {
-      ctx.addIssue({ code: "custom", message: "Некорректная дата" });
+      ctx.addIssue({ code: "custom", message: "dateInvalid" });
       return z.NEVER;
     }
     return d;
@@ -56,12 +56,12 @@ function startOfTodayUTC(): Date {
 // ---------------------------------------------------------------------------
 
 const step1BaseSchema = z.object({
-  title: z.string().trim().min(3, { error: "Введите название турнира" }).max(200),
+  title: z.string().trim().min(3, { error: "titleRequired" }).max(200),
   format: z.enum([TournamentFormat.DEBATES, TournamentFormat.MUN], {
-    error: "Выберите формат турнира",
+    error: "formatRequired",
   }),
   locationType: z.enum([LocationType.ONLINE, LocationType.OFFLINE], {
-    error: "Выберите тип проведения",
+    error: "locationTypeRequired",
   }),
   level: z
     .enum([Level.BEGINNER, Level.INTERMEDIATE, Level.ADVANCED])
@@ -69,7 +69,7 @@ const step1BaseSchema = z.object({
     .or(z.literal("")),
   languages: z
     .array(z.string().trim().min(1))
-    .min(1, { error: "Выберите хотя бы один язык" }),
+    .min(1, { error: "languagesRequired" }),
   city: z.string().trim().max(120).optional().or(z.literal("")),
   address: z.string().trim().max(300).optional().or(z.literal("")),
   venue: z.string().trim().max(200).optional().or(z.literal("")),
@@ -77,9 +77,9 @@ const step1BaseSchema = z.object({
   endDate: optionalDateInputSchema,
   registrationDeadline: dateInputSchema,
   price: z.coerce
-    .number({ error: "Укажите цену участия" })
-    .int({ error: "Цена должна быть целым числом" })
-    .nonnegative({ error: "Цена не может быть отрицательной" }),
+    .number({ error: "priceRequired" })
+    .int({ error: "priceInteger" })
+    .nonnegative({ error: "priceNegative" }),
 });
 
 /** Общие для Шага 1 и полной схемы проверки (город для OFFLINE, порядок дат, дедлайн не в прошлом). */
@@ -98,13 +98,13 @@ function validateStep1Cross(
   opts: { allowPastDeadline?: boolean } = {},
 ) {
   if (data.locationType === LocationType.OFFLINE && !data.city?.trim()) {
-    ctx.addIssue({ code: "custom", message: "Укажите город проведения", path: ["city"] });
+    ctx.addIssue({ code: "custom", message: "cityRequired", path: ["city"] });
   }
 
   if (data.endDate && data.endDate.getTime() < data.startDate.getTime()) {
     ctx.addIssue({
       code: "custom",
-      message: "Дата окончания не может быть раньше даты начала",
+      message: "endBeforeStart",
       path: ["endDate"],
     });
   }
@@ -112,7 +112,7 @@ function validateStep1Cross(
   if (data.registrationDeadline.getTime() > data.startDate.getTime()) {
     ctx.addIssue({
       code: "custom",
-      message: "Дедлайн регистрации не может быть позже даты начала турнира",
+      message: "deadlineAfterStart",
       path: ["registrationDeadline"],
     });
   }
@@ -120,7 +120,7 @@ function validateStep1Cross(
   if (!opts.allowPastDeadline && data.registrationDeadline.getTime() < startOfTodayUTC().getTime()) {
     ctx.addIssue({
       code: "custom",
-      message: "Дедлайн регистрации не может быть в прошлом",
+      message: "deadlineInPast",
       path: ["registrationDeadline"],
     });
   }
@@ -141,8 +141,8 @@ export const editStep1Schema = step1BaseSchema.superRefine((data, ctx) =>
 // ---------------------------------------------------------------------------
 
 const sectionSchema = z.object({
-  title: z.string().trim().min(1, { error: "Введите заголовок раздела" }).max(150),
-  description: z.string().trim().min(1, { error: "Введите описание раздела" }).max(5000),
+  title: z.string().trim().min(1, { error: "sectionTitleRequired" }).max(150),
+  description: z.string().trim().min(1, { error: "sectionDescriptionRequired" }).max(5000),
 });
 export type TournamentSectionInput = z.infer<typeof sectionSchema>;
 
@@ -169,18 +169,18 @@ const imageUrlSchema = z
       !val ||
       /^\/uploads\/tournaments\/[A-Za-z0-9._-]+$/.test(val) ||
       /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/[A-Za-z0-9/._-]+$/.test(val),
-    { error: "Некорректная ссылка на изображение" },
+    { error: "imageUrlInvalid" },
   );
 
 const step2BaseSchema = z.object({
   description: z
     .string()
     .trim()
-    .min(50, { error: "Описание должно содержать не менее 50 символов" })
+    .min(50, { error: "descriptionMin50" })
     .max(10000),
   coverImage: imageUrlSchema.optional().or(z.literal("")),
   logoImage: imageUrlSchema.optional().or(z.literal("")),
-  sections: z.array(sectionSchema).max(20, { error: "Не более 20 разделов" }).optional(),
+  sections: z.array(sectionSchema).max(20, { error: "sectionsMax20" }).optional(),
 });
 
 export const step2Schema = step2BaseSchema;
@@ -197,12 +197,12 @@ const optionalEmailSchema = z
   .optional()
   .or(z.literal(""))
   .refine((val) => !val || z.email().safeParse(val).success, {
-    error: "Введите корректный email",
+    error: "emailInvalid",
   });
 
 const step3BaseSchema = z.object({
   registrationType: z.enum([RegistrationType.PLATFORM, RegistrationType.EXTERNAL], {
-    error: "Выберите способ регистрации",
+    error: "registrationTypeRequired",
   }),
   externalUrl: z.string().trim().max(500).optional().or(z.literal("")),
   // Реквизиты для оплаты взноса. На уровне шага необязательны: цена живёт на
@@ -233,7 +233,7 @@ function validateStep3Cross(
   if (!url) {
     ctx.addIssue({
       code: "custom",
-      message: "Укажите ссылку на внешнюю регистрацию",
+      message: "externalUrlRequired",
       path: ["externalUrl"],
     });
     return;
@@ -242,7 +242,7 @@ function validateStep3Cross(
   if (!z.url().safeParse(url).success) {
     ctx.addIssue({
       code: "custom",
-      message: "Введите корректную ссылку (URL)",
+      message: "urlInvalid",
       path: ["externalUrl"],
     });
   }
@@ -272,14 +272,14 @@ function validatePaymentCross(
   if (!data.paymentAccount?.trim()) {
     ctx.addIssue({
       code: "custom",
-      message: "Укажите номер карты или телефона для оплаты взноса",
+      message: "paymentAccountRequired",
       path: ["paymentAccount"],
     });
   }
   if (!data.paymentRecipient?.trim()) {
     ctx.addIssue({
       code: "custom",
-      message: "Укажите ФИО получателя перевода",
+      message: "paymentRecipientRequired",
       path: ["paymentRecipient"],
     });
   }

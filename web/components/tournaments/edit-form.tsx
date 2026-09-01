@@ -17,6 +17,7 @@ import { editTournament, deleteOwnTournament } from "@/lib/actions/tournaments";
 import { editStep1Schema, step2Schema, step3Schema } from "@/lib/validations/tournament";
 import { TournamentStatus, parseLanguages } from "@/lib/enums";
 import type { TournamentEditData } from "@/lib/tournaments/queries";
+import { useValidationErrors } from "@/lib/i18n/use-validation-errors";
 
 const initialState = undefined;
 
@@ -64,6 +65,9 @@ function buildInitialValues(t: TournamentEditData): WizardValues {
  * прокручиваемая страница, без дублирования разметки полей.
  */
 export function EditTournamentForm({ tournament }: { tournament: TournamentEditData }) {
+  // Схемы валидации отдают ключи, а не текст (lib/validations/*.ts): одна и та
+  // же схема работает на сервере и здесь, а язык известен только при показе.
+  const { translateFieldErrors } = useValidationErrors();
   const boundAction = editTournament.bind(null, tournament.id);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
   const [values, setValues] = useState<WizardValues>(() => buildInitialValues(tournament));
@@ -137,10 +141,12 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
       email: values.email,
     });
 
+    // Схемы отдают КЛЮЧИ сообщений (см. lib/validations/*.ts) — переводим их
+    // здесь, до показа: иначе в поле появится «titleRequired».
     const merged: FieldErrors = {
-      ...(s1.success ? {} : (s1.error.flatten().fieldErrors as FieldErrors)),
-      ...(s2.success ? {} : (s2.error.flatten().fieldErrors as FieldErrors)),
-      ...(s3.success ? {} : (s3.error.flatten().fieldErrors as FieldErrors)),
+      ...(s1.success ? {} : translateFieldErrors(s1.error.flatten().fieldErrors)),
+      ...(s2.success ? {} : translateFieldErrors(s2.error.flatten().fieldErrors)),
+      ...(s3.success ? {} : translateFieldErrors(s3.error.flatten().fieldErrors)),
     };
 
     if (Object.keys(merged).length > 0) {

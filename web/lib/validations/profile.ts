@@ -14,8 +14,8 @@ import { passwordSchema } from "@/lib/validations/auth";
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
 
 export const updateProfileSchema = z.object({
-  firstName: z.string().trim().min(1, { error: "Введите имя" }).max(100),
-  lastName: z.string().trim().min(1, { error: "Введите фамилию" }).max(100),
+  firstName: z.string().trim().min(1, { error: "firstNameRequired" }).max(100),
+  lastName: z.string().trim().min(1, { error: "lastNameRequired" }).max(100),
   phone: optionalText(30),
   city: optionalText(100),
   school: optionalText(200),
@@ -35,16 +35,16 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, { error: "Введите текущий пароль" }),
+    currentPassword: z.string().min(1, { error: "currentPasswordRequired" }),
     newPassword: passwordSchema,
-    confirmPassword: z.string().min(1, { error: "Подтвердите новый пароль" }),
+    confirmPassword: z.string().min(1, { error: "passwordConfirmNew" }),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    error: "Пароли не совпадают",
+    error: "passwordsMismatch",
     path: ["confirmPassword"],
   })
   .refine((data) => data.newPassword !== data.currentPassword, {
-    error: "Новый пароль совпадает с текущим",
+    error: "passwordSameAsCurrent",
     path: ["newPassword"],
   });
 

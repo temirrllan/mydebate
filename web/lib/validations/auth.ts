@@ -11,9 +11,9 @@ import { z } from "zod";
 // символов / Латинские буквы (a-z, A-Z) / Хотя бы одну цифру (0-9)").
 export const passwordSchema = z
   .string()
-  .min(8, { error: "Минимум 8 символов" })
-  .regex(/[a-zA-Z]/, { error: "Должна быть хотя бы одна латинская буква" })
-  .regex(/[0-9]/, { error: "Должна быть хотя бы одна цифра" });
+  .min(8, { error: "passwordMinLength" })
+  .regex(/[a-zA-Z]/, { error: "passwordNeedsLetter" })
+  .regex(/[0-9]/, { error: "passwordNeedsDigit" });
 
 // Отдельные требования пароля для живой индикации на клиенте (checklist в
 // макете). Порядок соответствует макету.
@@ -30,14 +30,14 @@ export const passwordRequirements: { key: string; test: (value: string) => boole
 export const emailSchema = z
   .string()
   .trim()
-  .min(1, { error: "Введите email" })
+  .min(1, { error: "emailRequired" })
   .toLowerCase()
-  .pipe(z.email({ error: "Введите корректный email" }));
+  .pipe(z.email({ error: "emailInvalid" }));
 
 export const registerSchema = z
   .object({
-    firstName: z.string().trim().min(1, { error: "Введите имя" }).max(100),
-    lastName: z.string().trim().min(1, { error: "Введите фамилию" }).max(100),
+    firstName: z.string().trim().min(1, { error: "firstNameRequired" }).max(100),
+    lastName: z.string().trim().min(1, { error: "lastNameRequired" }).max(100),
     email: emailSchema,
     phone: z
       .string()
@@ -46,13 +46,13 @@ export const registerSchema = z
       .optional()
       .or(z.literal("")),
     password: passwordSchema,
-    confirmPassword: z.string().min(1, { error: "Подтвердите пароль" }),
+    confirmPassword: z.string().min(1, { error: "passwordConfirm" }),
     agree: z
       .boolean()
-      .refine((v) => v === true, { error: "Необходимо согласие с правилами" }),
+      .refine((v) => v === true, { error: "agreeRules" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    error: "Пароли не совпадают",
+    error: "passwordsMismatch",
     path: ["confirmPassword"],
   });
 
@@ -60,7 +60,7 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, { error: "Введите пароль" }),
+  password: z.string().min(1, { error: "passwordRequired" }),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -75,10 +75,10 @@ export const resetPasswordSchema = z
   .object({
     token: z.string().min(1),
     password: passwordSchema,
-    confirmPassword: z.string().min(1, { error: "Подтвердите пароль" }),
+    confirmPassword: z.string().min(1, { error: "passwordConfirm" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    error: "Пароли не совпадают",
+    error: "passwordsMismatch",
     path: ["confirmPassword"],
   });
 

@@ -29,6 +29,7 @@ import {
   createUserByAdminSchema,
 } from "@/lib/validations/admin";
 import { createNotification } from "@/lib/notifications/create";
+import { translateFieldErrors } from "@/lib/i18n/validation";
 
 export type AdminActionResult =
   | { ok: true }
@@ -118,7 +119,7 @@ export async function rejectTournament(
 
   const parsed = rejectTournamentSchema.safeParse({ reason });
   if (!parsed.success) {
-    return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const tournament = await prisma.tournament.findUnique({
@@ -406,13 +407,13 @@ export async function createUserByAdmin(
 
   const parsed = createUserByAdminSchema.safeParse(raw);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
   const data = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email: data.email }, select: { id: true } });
   if (existing) {
-    return { fieldErrors: { email: ["Пользователь с таким email уже зарегистрирован."] } };
+    return { fieldErrors: await translateFieldErrors({ email: ["emailTaken"] }) };
   }
 
   try {
@@ -455,7 +456,7 @@ export async function respondToTicket(
 
   const parsed = respondToTicketSchema.safeParse({ response });
   if (!parsed.success) {
-    return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { ok: false, fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const ticket = await prisma.supportTicket.findUnique({

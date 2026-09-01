@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Link } from "@/i18n/navigation";
+import { LegalLanguageNotice } from "@/components/ui/legal-language-notice";
 
 export const metadata: Metadata = { title: "Условия использования" };
 
@@ -13,6 +14,8 @@ export default function TermsPage() {
           items={[{ label: "Главная", href: "/" }, { label: "Условия использования" }]}
           className="mb-8"
         />
+
+        <LegalLanguageNotice />
 
         <h1 className="max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-navy-900 sm:text-4xl">
           Условия использования

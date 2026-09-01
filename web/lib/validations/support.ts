@@ -14,13 +14,13 @@ export const createSupportTicketSchema = z.object({
   subject: z
     .string()
     .trim()
-    .min(3, { error: "Введите тему обращения" })
-    .max(200, { error: "Слишком длинная тема (макс. 200 символов)" }),
+    .min(3, { error: "subjectRequired" })
+    .max(200, { error: "subjectTooLong" }),
   message: z
     .string()
     .trim()
-    .min(20, { error: "Сообщение должно содержать не менее 20 символов" })
-    .max(3000, { error: "Слишком длинное сообщение (макс. 3000 символов)" }),
+    .min(20, { error: "messageMin20" })
+    .max(3000, { error: "messageTooLong3000" }),
 });
 
 export type CreateSupportTicketInput = z.infer<typeof createSupportTicketSchema>;

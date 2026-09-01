@@ -15,13 +15,13 @@ export const announcementSchema = z.object({
   subject: z
     .string()
     .trim()
-    .min(3, { error: "Введите тему сообщения" })
-    .max(150, { error: "Тема не длиннее 150 символов" }),
+    .min(3, { error: "announcementSubjectRequired" })
+    .max(150, { error: "announcementSubjectMax150" }),
   message: z
     .string()
     .trim()
-    .min(10, { error: "Сообщение должно содержать не менее 10 символов" })
-    .max(4000, { error: "Сообщение не длиннее 4000 символов" }),
+    .min(10, { error: "messageMin10" })
+    .max(4000, { error: "messageMax4000" }),
   // «Всем» или конкретный статус заявки — организатор часто пишет не всем
   // подряд, а, например, только принятым (ссылка на рабочий чат) или только
   // листу ожидания.

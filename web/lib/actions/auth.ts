@@ -26,6 +26,7 @@ import {
 } from "@/lib/validations/auth";
 import { sendPasswordResetEmail } from "@/lib/email/templates";
 import { rateLimit, rateLimitReset, getClientIp } from "@/lib/rate-limit";
+import { translateFieldErrors } from "@/lib/i18n/validation";
 
 const TOO_MANY_ATTEMPTS = (sec: number) =>
   `Слишком много попыток. Попробуйте снова через ${Math.ceil(sec / 60)} мин.`;
@@ -85,7 +86,7 @@ export async function registerUser(
 
   const parsed = registerSchema.safeParse(raw);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   // Rate-limiting по IP — против массового создания аккаунтов ботами.
@@ -100,7 +101,7 @@ export async function registerUser(
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return {
-      fieldErrors: { email: ["Пользователь с таким email уже зарегистрирован."] },
+      fieldErrors: await translateFieldErrors({ email: ["emailTaken"] }),
     };
   }
 
@@ -159,7 +160,7 @@ export async function loginUser(
 
   const parsed = loginSchema.safeParse(raw);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   // Rate-limiting: ключ по IP+email — душит и перебор пароля для одного
@@ -210,7 +211,7 @@ export async function requestPasswordReset(
 ): Promise<ActionState> {
   const parsed = forgotPasswordSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   // Rate-limiting по IP — не даём спамить письмами сброса на чужие адреса и
@@ -262,7 +263,7 @@ export async function resetPassword(
   });
 
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const { token, password } = parsed.data;

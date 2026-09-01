@@ -20,6 +20,7 @@ import { NotificationType, Role } from "@/lib/enums";
 import { SUPPORT_TICKET_SUCCESS_MESSAGE } from "@/lib/format";
 import { createSupportTicketSchema } from "@/lib/validations/support";
 import { createNotification } from "@/lib/notifications/create";
+import { translateFieldErrors } from "@/lib/i18n/validation";
 
 export type CreateSupportTicketActionState =
   | {
@@ -51,7 +52,7 @@ export async function createSupportTicket(
 
   const parsed = createSupportTicketSchema.safeParse(raw);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const data = parsed.data;

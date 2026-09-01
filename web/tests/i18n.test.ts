@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { LOCALES } from "@/i18n/routing";
@@ -95,6 +97,45 @@ describe("словари переводов", () => {
       );
 
       expect(untranslated).toEqual([]);
+    });
+  }
+});
+
+// Схемы валидации хранят КЛЮЧ сообщения, а не текст (lib/validations/*.ts).
+// Ключ, которого нет в словаре, ничего не ломает при сборке — он просто
+// доезжает до пользователя как есть: в поле появляется «titleRequired».
+// Единственный способ это поймать — сверить схемы со словарём.
+describe("ключи сообщений валидации", () => {
+  const VALIDATIONS_DIR = join(__dirname, "..", "lib", "validations");
+
+  /** Все значения error:/message: из zod-схем. */
+  function keysUsedInSchemas(): { file: string; key: string }[] {
+    const found: { file: string; key: string }[] = [];
+    for (const file of readdirSync(VALIDATIONS_DIR).filter((f) => f.endsWith(".ts"))) {
+      const source = readFileSync(join(VALIDATIONS_DIR, file), "utf8");
+      for (const m of source.matchAll(/(?:error|message):\s*"([^"]+)"/g)) {
+        found.push({ file, key: m[1] });
+      }
+    }
+    return found;
+  }
+
+  it("схемы не содержат готового текста — только ключи", () => {
+    // Кириллица в схеме означает, что сообщение забыли вынести в словарь.
+    const withText = keysUsedInSchemas().filter(({ key }) => /[А-Яа-яЁё]/.test(key));
+    expect(withText).toEqual([]);
+  });
+
+  for (const locale of LOCALES) {
+    it(`${locale}: каждый ключ из схем есть в словаре`, () => {
+      const catalogue = (CATALOGUES[locale] as { validation?: Record<string, string> })
+        .validation;
+
+      const orphans = keysUsedInSchemas()
+        .filter(({ key }) => !catalogue?.[key])
+        .map(({ file, key }) => `${file}: ${key}`);
+
+      expect(orphans).toEqual([]);
     });
   }
 });

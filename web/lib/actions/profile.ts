@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { formatLanguages, parseLanguages } from "@/lib/enums";
 import { updateProfileSchema, changePasswordSchema } from "@/lib/validations/profile";
+import { translateFieldErrors } from "@/lib/i18n/validation";
 
 export type ProfileActionState = {
   message?: string;
@@ -55,7 +56,7 @@ export async function updateProfile(
   });
 
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const d = parsed.data;
@@ -106,7 +107,7 @@ export async function changePassword(
   });
 
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const record = await prisma.user.findUnique({
@@ -123,7 +124,7 @@ export async function changePassword(
 
   const ok = await bcrypt.compare(parsed.data.currentPassword, record.passwordHash);
   if (!ok) {
-    return { fieldErrors: { currentPassword: ["Неверный текущий пароль"] } };
+    return { fieldErrors: await translateFieldErrors({ currentPassword: ["currentPasswordWrong"] }) };
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 10);

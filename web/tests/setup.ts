@@ -34,6 +34,37 @@ vi.mock("next/server", async (importOriginal) => ({
   },
 }));
 
+// Серверные хелперы next-intl. Вне рантайма Next пакет резолвится в свою
+// КЛИЕНТСКУЮ сборку, и getTranslations честно бросает «not supported in Client
+// Components». Подменяем его настоящим русским словарём: экшены переводят
+// ключи ошибок через него, и тесты продолжают проверять человеческий текст
+// («Введите название команды»), а не ключ — то есть заодно следят, что
+// ключ вообще разворачивается.
+vi.mock("next-intl/server", async () => {
+  // Словарь вложенный на произвольную глубину («home.advantages.accessTitle»),
+  // поэтому тип — рекурсивный, а не Record<string, Record<string, string>>.
+  const messages: unknown = (await import("../messages/ru.json")).default;
+
+  function resolve(namespace: string | undefined, key: string): string | undefined {
+    const path = namespace ? `${namespace}.${key}` : key;
+    return path
+      .split(".")
+      .reduce<unknown>(
+        (acc, part) => (acc as Record<string, unknown>)?.[part],
+        messages,
+      ) as string | undefined;
+  }
+
+  return {
+    getTranslations: async (arg?: string | { locale?: string; namespace?: string }) => {
+      const namespace = typeof arg === "string" ? arg : arg?.namespace;
+      const t = (key: string) => resolve(namespace, key) ?? key;
+      t.has = (key: string) => resolve(namespace, key) !== undefined;
+      return t;
+    },
+  };
+});
+
 /**
  * Сессия. Экшены зовут requireAdmin()/requireUser() из lib/auth/session, а тот
  * лезет в NextAuth, которого в тестах нет. Подменяем модуль целиком: тест сам

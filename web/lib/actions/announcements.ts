@@ -25,6 +25,7 @@ import {
   announcementSchema,
   ANNOUNCEMENT_AUDIENCE_ALL,
 } from "@/lib/validations/announcement";
+import { translateFieldErrors } from "@/lib/i18n/validation";
 
 export type AnnouncementActionState =
   | {
@@ -63,7 +64,7 @@ export async function announceToParticipants(
     audience: formData.get("audience") ?? ANNOUNCEMENT_AUDIENCE_ALL,
   });
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const tournament = await prisma.tournament.findUnique({

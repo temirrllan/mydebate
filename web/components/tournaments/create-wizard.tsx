@@ -12,6 +12,7 @@ import { Step1BasicInfo } from "./create/step1-basic-info";
 import { Step2Content } from "./create/step2-content";
 import { Step3Contacts } from "./create/step3-contacts";
 import { INITIAL_WIZARD_VALUES, getStepForField, type FieldErrors, type WizardValues } from "./create/types";
+import { useValidationErrors } from "@/lib/i18n/use-validation-errors";
 
 const STEPS: ProgressStep[] = [
   { label: "Основная информация", description: "Формат, дата, место" },
@@ -30,6 +31,9 @@ const initialActionState = undefined;
  * возвращённые fieldErrors перебрасывают мастер на первый затронутый шаг.
  */
 export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean }) {
+  // Схемы валидации отдают ключи, а не текст (lib/validations/*.ts): одна и та
+  // же схема работает на сервере и здесь, а язык известен только при показе.
+  const { translateFieldErrors } = useValidationErrors();
   const [step, setStep] = useState(1);
   const [values, setValues] = useState<WizardValues>(INITIAL_WIZARD_VALUES);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -159,7 +163,7 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
     if (step === 1) {
       const result = step1Schema.safeParse(step1Payload());
       if (!result.success) {
-        setErrors(result.error.flatten().fieldErrors as FieldErrors);
+        setErrors(translateFieldErrors(result.error.flatten().fieldErrors));
         return;
       }
       setErrors({});
@@ -170,7 +174,7 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
     if (step === 2) {
       const result = step2Schema.safeParse(step2Payload());
       if (!result.success) {
-        setErrors(result.error.flatten().fieldErrors as FieldErrors);
+        setErrors(translateFieldErrors(result.error.flatten().fieldErrors));
         return;
       }
       setErrors({});
@@ -181,7 +185,7 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
     // Шаг 3 — финальная отправка.
     const result = step3Schema.safeParse(step3Payload());
     if (!result.success) {
-      setErrors(result.error.flatten().fieldErrors as FieldErrors);
+      setErrors(translateFieldErrors(result.error.flatten().fieldErrors));
       return;
     }
     setErrors({});

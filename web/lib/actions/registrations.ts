@@ -28,6 +28,7 @@ import { isRegistrationOpen, REGISTRATION_SUCCESS_MESSAGE } from "@/lib/format";
 import { registrationSchema, registrationStatusSchema } from "@/lib/validations/registration";
 import { REG_STATUS_LABEL } from "@/lib/format";
 import { createNotification } from "@/lib/notifications/create";
+import { translateFieldErrors } from "@/lib/i18n/validation";
 
 export type RegistrationActionState =
   | {
@@ -84,7 +85,7 @@ export async function registerForTournament(
 
   const parsed = registrationSchema.safeParse(raw);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const tournament = await prisma.tournament.findUnique({
@@ -122,7 +123,7 @@ export async function registerForTournament(
   // чек об оплате ниже: формат берём из БД, а не из присланной формы.
   const isMun = tournament.format === TournamentFormat.MUN;
   if (!isMun && !parsed.data.teamName) {
-    return { fieldErrors: { teamName: ["Введите название команды"] } };
+    return { fieldErrors: await translateFieldErrors({ teamName: ["teamNameRequired"] }) };
   }
 
   // Язык vs комитет. На дебатах участник выбирает язык, на MUN — комитет из
@@ -139,12 +140,12 @@ export async function registerForTournament(
   }
   if (isMun && committees.length > 0) {
     if (!parsed.data.committee) {
-      return { fieldErrors: { committee: ["Выберите комитет"] } };
+      return { fieldErrors: await translateFieldErrors({ committee: ["committeeRequired"] }) };
     }
     // Значение приходит из formData, то есть подделывается POST'ом в обход
     // формы — принимаем только реально существующий комитет этого турнира.
     if (!committees.includes(parsed.data.committee)) {
-      return { fieldErrors: { committee: ["Выберите комитет из списка"] } };
+      return { fieldErrors: await translateFieldErrors({ committee: ["committeeNotInList"] }) };
     }
   }
 
@@ -163,7 +164,7 @@ export async function registerForTournament(
     Boolean(tournament.paymentAccount);
   if (needsReceipt && !parsed.data.receiptUrl) {
     return {
-      fieldErrors: { receiptUrl: ["Приложите чек об оплате взноса"] },
+      fieldErrors: await translateFieldErrors({ receiptUrl: ["receiptRequired"] }),
     };
   }
 

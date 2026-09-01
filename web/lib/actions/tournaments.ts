@@ -27,6 +27,7 @@ import {
 import { createTournamentSchema, editTournamentSchema } from "@/lib/validations/tournament";
 import { EDIT_TOURNAMENT_SUCCESS_MESSAGE } from "@/lib/format";
 import { createNotification } from "@/lib/notifications/create";
+import { translateFieldErrors } from "@/lib/i18n/validation";
 
 export type CreateTournamentActionState =
   | {
@@ -107,7 +108,7 @@ export async function createTournament(
 
   const parsed = createTournamentSchema.safeParse(raw);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const data = parsed.data;
@@ -323,7 +324,7 @@ export async function editTournament(
 
   const parsed = editTournamentSchema.safeParse(raw);
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+    return { fieldErrors: await translateFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
   const data = parsed.data;
