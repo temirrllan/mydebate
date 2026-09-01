@@ -20,6 +20,26 @@ set -euo pipefail
 APP_DIR="${DEPLOY_PATH:-$HOME/mydebate}"
 cd "$APP_DIR"
 
+# --- Освобождаем место ДО всего остального -------------------------------
+#
+# Порядок здесь не косметика. Раньше чистка стояла в самом конце скрипта, и
+# когда диск кончался, деплой падал раньше, чем до неё доходил: `git fetch`
+# сдыхал с "unable to create temporary file: No space left on device", а
+# накопившиеся образы так и оставались лежать. Диск чинить приходилось руками.
+#
+# Что копится: каждый деплой скачивает образ с тегом коммита. `docker image
+# prune -f` их не трогает — он удаляет только образы БЕЗ тега, а у этих тег
+# есть. За десяток деплоев набегают гигабайты.
+echo "==> Убираем образы прошлых версий"
+docker images --filter=reference='ghcr.io/*/mydebate/*' --format '{{.Repository}}:{{.Tag}}' \
+  | grep -v -e ":${IMAGE_TAG:-latest}\$" -e ':latest$' \
+  | xargs -r docker rmi -f >/dev/null 2>&1 || true
+docker image prune -f >/dev/null 2>&1 || true
+# Кэш сборки остался с тех времён, когда образы собирались прямо здесь.
+docker builder prune -f >/dev/null 2>&1 || true
+
+df -h "$APP_DIR" | tail -1 | awk '{print "==> Свободно на диске: " $4 " (занято " $5 ")"}'
+
 echo "==> Подтягиваем изменения в $APP_DIR"
 git fetch --prune origin
 # --ff-only, а не reset --hard: если на сервере оказались локальные правки или
@@ -49,10 +69,6 @@ docker compose logs --no-log-prefix migrate | tail -20
 
 echo "==> Состояние"
 docker compose ps
-
-# Каждый деплой оставляет предыдущий образ без тега. На диске VPS это быстро
-# превращается в десятки гигабайт (у нас уже было 80% занято).
-docker image prune -f >/dev/null
 
 # Контейнер `web` стартует только после успешных миграций. Если он не поднялся,
 # деплой считается неудачным — иначе Actions покажет зелёную галочку на упавшем
