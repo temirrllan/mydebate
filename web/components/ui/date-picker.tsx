@@ -9,16 +9,45 @@
 // дата была введена правильно. Здесь маска всегда русская (дд.мм.гггг), а
 // значение наружу отдаётся в том же формате "YYYY-MM-DD", что и раньше, —
 // схемы в lib/validations и queries.ts менять не нужно.
+//
+// ПОРЯДОК частей маски (день.месяц.год) одинаков во всех локалях и менять его
+// нельзя: его же разбирает textToIso ниже. Переводится только подпись-
+// подсказка («дд.мм.гггг» / «кк.аа.жжжж» / «dd.mm.yyyy»), а названия месяцев и
+// дней недели берутся из Intl по текущей локали — держать их тремя списками в
+// словаре незачем, они и так есть в браузере и в Node.
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { LOCALE_TAG, type Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
-const MONTHS = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
-];
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+/** Названия месяцев на языке интерфейса: «Январь» / «Қаңтар» / «January». */
+function monthNames(locale: string): string[] {
+  const fmt = new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
+    month: "long",
+    timeZone: "UTC",
+  });
+  return Array.from({ length: 12 }, (_, m) =>
+    capitalize(fmt.format(new Date(Date.UTC(2024, m, 1)))),
+  );
+}
+
+/** Короткие дни недели, начиная с понедельника. */
+function weekdayNames(locale: string): string[] {
+  const fmt = new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+  // 2024-01-01 — понедельник, дальше подряд.
+  return Array.from({ length: 7 }, (_, i) =>
+    capitalize(fmt.format(new Date(Date.UTC(2024, 0, 1 + i)))),
+  );
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 /** "YYYY-MM-DD" из локальных частей даты (без UTC-сдвига, который даёт toISOString). */
 function toIso(year: number, month: number, day: number): string {
@@ -84,6 +113,7 @@ export interface DatePickerProps {
   /** Границы допустимого диапазона, тоже "YYYY-MM-DD". */
   min?: string;
   max?: string;
+  /** По умолчанию — маска на языке интерфейса. */
   placeholder?: string;
   invalid?: boolean;
   disabled?: boolean;
@@ -99,13 +129,19 @@ export function DatePicker({
   onChange,
   min,
   max,
-  placeholder = "дд.мм.гггг",
+  placeholder,
   invalid,
   disabled,
   className,
   clearable = true,
   ...aria
 }: DatePickerProps) {
+  const t = useTranslations("datePicker");
+  const locale = useLocale();
+  // Пересчитываем только при смене языка, а не на каждый рендер календаря.
+  const months = useMemo(() => monthNames(locale), [locale]);
+  const weekdays = useMemo(() => weekdayNames(locale), [locale]);
+
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const [open, setOpen] = useState(false);
@@ -219,7 +255,7 @@ export function DatePicker({
         inputMode="numeric"
         autoComplete="off"
         value={text}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t("placeholder")}
         disabled={disabled}
         onChange={(e) => handleTextChange(e.target.value)}
         onBlur={handleBlur}
@@ -244,7 +280,7 @@ export function DatePicker({
             setSyncedValue("");
             setText("");
           }}
-          aria-label="Очистить дату"
+          aria-label={t("clear")}
           className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-ink"
         >
           <X size={14} />
@@ -254,7 +290,7 @@ export function DatePicker({
           type="button"
           onClick={() => (open ? setOpen(false) : openCalendar())}
           disabled={disabled}
-          aria-label="Открыть календарь"
+          aria-label={t("open")}
           tabIndex={-1}
           className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-ink"
         >
@@ -265,25 +301,25 @@ export function DatePicker({
       {open && (
         <div
           role="dialog"
-          aria-label="Выбор даты"
+          aria-label={t("label")}
           className="absolute left-0 top-[calc(100%+6px)] z-50 w-[268px] rounded-[var(--radius-card)] border border-line bg-white p-3 shadow-lg shadow-navy-900/10"
         >
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => shiftMonth(-1)}
-              aria-label="Предыдущий месяц"
+              aria-label={t("prevMonth")}
               className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-ink"
             >
               <ChevronLeft size={16} />
             </button>
             <div className="text-sm font-semibold text-navy-900">
-              {MONTHS[viewMonth]} {viewYear}
+              {months[viewMonth]} {viewYear}
             </div>
             <button
               type="button"
               onClick={() => shiftMonth(1)}
-              aria-label="Следующий месяц"
+              aria-label={t("nextMonth")}
               className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-ink"
             >
               <ChevronRight size={16} />
@@ -291,7 +327,7 @@ export function DatePicker({
           </div>
 
           <div className="mt-2 grid grid-cols-7 gap-0.5">
-            {WEEKDAYS.map((w) => (
+            {weekdays.map((w) => (
               <div key={w} className="py-1 text-center text-[11px] font-medium text-muted">
                 {w}
               </div>
@@ -342,7 +378,7 @@ export function DatePicker({
               }}
               className="rounded-md px-2 py-1 text-xs font-medium text-brand-600 transition-colors hover:bg-brand-50"
             >
-              Сегодня
+              {t("today")}
             </button>
             <button
               type="button"

@@ -71,10 +71,24 @@ export const REG_STATUS_ORDER: string[] = [
   RegistrationStatus.REJECTED,
 ];
 
-/** «5 000 ₸» — цена участия, 0/undefined → «Бесплатно». */
+/**
+ * «5 000 ₸» — сумма на языке интерфейса (разделитель разрядов у локалей
+ * разный). Подпись «Бесплатно» сюда НЕ входит: она переводится и живёт в
+ * словаре (tournament.free), а вызывающий код сам решает, что показать при
+ * нулевой цене. Так функция остаётся чистым форматтером и не тянет за собой
+ * словарь.
+ */
+export function formatPriceValue(price: number, locale: string): string {
+  return `${price.toLocaleString(LOCALE_TAG[locale as Locale] ?? locale)} ₸`;
+}
+
+/**
+ * @deprecated Осталось на страницах, до которых ещё не дошла локализация.
+ * В переведённых местах: `price ? formatPriceValue(price, locale) : t("free")`.
+ */
 export function formatPrice(price: number | null | undefined): string {
   if (!price) return "Бесплатно";
-  return `${price.toLocaleString("ru-RU")} ₸`;
+  return formatPriceValue(price, "ru");
 }
 
 // Текст успеха регистрации на турнир — намеренно вынесен сюда (а НЕ экспортируется

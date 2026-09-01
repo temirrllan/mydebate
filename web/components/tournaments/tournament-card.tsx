@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CoverPlaceholder } from "@/components/tournaments/cover-placeholder";
-import { FORMAT_LABEL, LEVEL_LABEL, formatDate, isRegistrationOpen } from "@/lib/format";
+import { formatDate, isRegistrationOpen } from "@/lib/format";
 
 export type TournamentCardData = {
   id: string;
@@ -51,6 +51,7 @@ export function TournamentCard({
   const t = useTranslations("tournamentCard");
   const locale = useLocale();
   const tCommon = useTranslations("common");
+  const tEnum = useTranslations("enums");
   const open = isRegistrationOpen(tournament.registrationDeadline);
 
   return (
@@ -95,9 +96,9 @@ export function TournamentCard({
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <Badge tone="blue">{FORMAT_LABEL[tournament.format] ?? tournament.format}</Badge>
+          <Badge tone="blue">{tEnum(`format.${tournament.format}`)}</Badge>
           {tournament.level && (
-            <Badge tone="purple">{LEVEL_LABEL[tournament.level] ?? tournament.level}</Badge>
+            <Badge tone="purple">{tEnum(`level.${tournament.level}`)}</Badge>
           )}
         </div>
 

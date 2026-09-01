@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import {
   Calendar,
   MapPin,
@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { InstagramIcon, TelegramIcon, TikTokIcon } from "@/components/icons/social";
+import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
@@ -30,24 +31,21 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getFavoriteTournamentIds } from "@/lib/actions/favorites";
 import { getMyRegistrations } from "@/lib/profile/queries";
 import { TournamentFormat, RegistrationType, LocationType, parseLanguages } from "@/lib/enums";
-import {
-  FORMAT_LABEL,
-  LEVEL_LABEL,
-  LOCATION_TYPE_LABEL,
-  REG_STATUS_LABEL,
-  REG_STATUS_TONE,
-  formatDateRu,
-  formatPrice,
-  isRegistrationOpen,
-} from "@/lib/format";
+import { REG_STATUS_TONE, formatDate, formatPriceValue, isRegistrationOpen } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { absoluteUrl } from "@/lib/site";
 import { normalizeSocialUrl } from "@/lib/social";
+import { localeAlternates } from "@/lib/i18n/alternates";
+import type { Locale } from "@/i18n/routing";
 
 /** Аннотация для поиска и превью: первые ~160 символов описания одной строкой. */
-function buildDescription(tournament: { description: string; city: string | null; startDate: Date }): string {
-  const where = tournament.city ? `${tournament.city}, ` : "Онлайн, ";
-  const when = formatDateRu(tournament.startDate);
+function buildDescription(
+  tournament: { description: string; city: string | null; startDate: Date },
+  locale: string,
+  onlineLabel: string,
+): string {
+  const where = tournament.city ? `${tournament.city}, ` : `${onlineLabel}, `;
+  const when = formatDate(tournament.startDate, locale);
   const prefix = `${where}${when}. `;
   const text = tournament.description.replace(/\s+/g, " ").trim();
   const room = 160 - prefix.length;
@@ -57,13 +55,15 @@ function buildDescription(tournament: { description: string; city: string | null
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
   const tournament = await getTournamentDetail(id);
-  if (!tournament) return { title: "Турнир не найден" };
+  const t = await getTranslations({ locale, namespace: "tournament" });
+  if (!tournament) return { title: t("notFound") };
 
-  const description = buildDescription(tournament);
+  const tCommon = await getTranslations({ locale, namespace: "common" });
+  const description = buildDescription(tournament, locale, tCommon("online"));
   const url = `/tournaments/${id}`;
 
   return {
@@ -72,7 +72,7 @@ export async function generateMetadata({
     // canonical говорит поисковику, какой адрес считать главным: на страницу
     // могут вести ссылки с метками рекламных кампаний, и без этого он
     // посчитал бы их разными страницами с одинаковым содержимым.
-    alternates: { canonical: url },
+    alternates: localeAlternates(url, locale as Locale),
     openGraph: {
       type: "article",
       url,
@@ -88,11 +88,17 @@ export async function generateMetadata({
 export default async function TournamentDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }) {
-  const { id } = await params;
+  const { id, locale } = await params;
   const tournament = await getTournamentDetail(id);
   if (!tournament) notFound();
+
+  const t = await getTranslations("tournament");
+  const tCommon = await getTranslations("common");
+  const tEnum = await getTranslations("enums");
+  const tNav = await getTranslations("nav");
+  const tCard = await getTranslations("tournamentCard");
 
   // Страница турнира открыта всем — с неё и приходят люди из поиска
   // (см. proxy.ts). Гостю показываем всё то же самое, кроме личных вещей:
@@ -106,7 +112,8 @@ export default async function TournamentDetailPage({
 
   const open = isRegistrationOpen(tournament.registrationDeadline);
   const languages = parseLanguages(tournament.languages);
-  const sectionsLabel = tournament.format === TournamentFormat.MUN ? "Комитеты" : "Разделы турнира";
+  const sectionsLabel =
+    tournament.format === TournamentFormat.MUN ? t("committees") : t("sections");
   // Внешняя регистрация (spec §7): организатор указывает стороннюю ссылку
   // вместо формы платформы — CTA должен вести на неё, а не на
   // /tournaments/[id]/register (внутренняя форма для таких турниров вообще
@@ -122,19 +129,19 @@ export default async function TournamentDetailPage({
     {
       key: "instagram",
       href: normalizeSocialUrl(tournament.instagram, "instagram"),
-      label: "Instagram организатора",
+      label: t("instagramLabel"),
       Icon: InstagramIcon,
     },
     {
       key: "tiktok",
       href: normalizeSocialUrl(tournament.tiktok, "tiktok"),
-      label: "TikTok организатора",
+      label: t("tiktokLabel"),
       Icon: TikTokIcon,
     },
     {
       key: "telegram",
       href: normalizeSocialUrl(tournament.telegram, "telegram"),
-      label: "Telegram организатора",
+      label: t("telegramLabel"),
       Icon: TelegramIcon,
     },
   ].filter((link): link is typeof link & { href: string } => Boolean(link.href));
@@ -149,7 +156,7 @@ export default async function TournamentDetailPage({
     "@context": "https://schema.org",
     "@type": "Event",
     name: tournament.title,
-    description: buildDescription(tournament),
+    description: buildDescription(tournament, locale, tCommon("online")),
     startDate: new Date(tournament.startDate).toISOString(),
     ...(tournament.endDate ? { endDate: new Date(tournament.endDate).toISOString() } : {}),
     eventStatus: "https://schema.org/EventScheduled",
@@ -196,8 +203,8 @@ export default async function TournamentDetailPage({
       <Container className="py-6 sm:py-8">
         <Breadcrumbs
           items={[
-            { label: "Главная", href: "/" },
-            { label: "Турниры", href: "/tournaments" },
+            { label: tNav("home"), href: "/" },
+            { label: tNav("tournaments"), href: "/tournaments" },
             { label: tournament.title },
           ]}
         />
@@ -249,25 +256,27 @@ export default async function TournamentDetailPage({
                   </div>
                 )}
                 <Badge tone={open ? "green" : "gray"}>
-                  {open ? "Регистрация открыта" : "Регистрация завершена"}
+                  {open ? tCard("registrationOpen") : tCard("registrationClosed")}
                 </Badge>
                 <h1 className="mt-4 text-3xl font-extrabold text-white sm:text-4xl">
                   {tournament.title}
                 </h1>
                 <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/80">
                   <span className="inline-flex items-center gap-1.5">
-                    <Calendar size={16} /> {formatDateRu(tournament.startDate)}
+                    <Calendar size={16} /> {formatDate(tournament.startDate, locale)}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={16} /> {tournament.city ?? "Онлайн"}
+                    <MapPin size={16} /> {tournament.city ?? tCommon("online")}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <Globe size={16} /> {LOCATION_TYPE_LABEL[tournament.locationType] ?? tournament.locationType}
+                    <Globe size={16} /> {tEnum(`locationType.${tournament.locationType}`)}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Badge tone="blue">{FORMAT_LABEL[tournament.format] ?? tournament.format}</Badge>
-                  {tournament.level && <Badge tone="purple">{LEVEL_LABEL[tournament.level]}</Badge>}
+                  <Badge tone="blue">{tEnum(`format.${tournament.format}`)}</Badge>
+                  {tournament.level && (
+                    <Badge tone="purple">{tEnum(`level.${tournament.level}`)}</Badge>
+                  )}
                 </div>
               </div>
 
@@ -283,27 +292,27 @@ export default async function TournamentDetailPage({
             <div className="mt-8">
               {myRegistration ? (
                 <Badge tone={REG_STATUS_TONE[myRegistration.status] ?? "gray"} className="px-4 py-2 text-sm">
-                  {REG_STATUS_LABEL[myRegistration.status] ?? myRegistration.status}
+                  {tEnum(`regStatus.${myRegistration.status}`)}
                 </Badge>
               ) : isExternal ? (
                 open ? (
                   <Button asChild size="lg">
                     <a href={tournament.externalUrl!} target="_blank" rel="noreferrer">
-                      <ExternalLink size={18} /> Регистрация на сайте организатора
+                      <ExternalLink size={18} /> {t("registerExternal")}
                     </a>
                   </Button>
                 ) : (
                   <Button size="lg" disabled>
-                    Регистрация завершена
+                    {t("registrationClosed")}
                   </Button>
                 )
               ) : open ? (
                 <Button asChild size="lg">
-                  <Link href={`/tournaments/${tournament.id}/register`}>Зарегистрироваться</Link>
+                  <Link href={`/tournaments/${tournament.id}/register`}>{t("register")}</Link>
                 </Button>
               ) : (
                 <Button size="lg" disabled>
-                  Регистрация завершена
+                  {t("registrationClosed")}
                 </Button>
               )}
             </div>
@@ -315,7 +324,7 @@ export default async function TournamentDetailPage({
         {/* Основной контент */}
         <div className="space-y-8 lg:col-span-2">
           <Card className="p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-navy-900">О турнире</h2>
+            <h2 className="text-xl font-bold text-navy-900">{t("about")}</h2>
             <p className="mt-4 whitespace-pre-line leading-relaxed text-muted">
               {tournament.description}
             </p>
@@ -342,28 +351,44 @@ export default async function TournamentDetailPage({
         {/* Сайдбар */}
         <div className="space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-bold text-navy-900">Детали турнира</h2>
+            <h2 className="text-lg font-bold text-navy-900">{t("details")}</h2>
             <dl className="mt-5 space-y-4 text-sm">
-              <DetailRow icon={Globe} label="Формат" value={FORMAT_LABEL[tournament.format] ?? tournament.format} />
-              <DetailRow icon={Calendar} label="Дата проведения" value={formatDateRu(tournament.startDate)} />
+              <DetailRow
+                icon={Globe}
+                label={t("format")}
+                value={tEnum(`format.${tournament.format}`)}
+              />
               <DetailRow
                 icon={Calendar}
-                label="Дедлайн регистрации"
-                value={formatDateRu(tournament.registrationDeadline)}
+                label={t("startDate")}
+                value={formatDate(tournament.startDate, locale)}
+              />
+              <DetailRow
+                icon={Calendar}
+                label={t("deadline")}
+                value={formatDate(tournament.registrationDeadline, locale)}
               />
               <DetailRow
                 icon={MapPin}
-                label="Место проведения"
-                value={tournament.venue ?? tournament.address ?? tournament.city ?? "Онлайн"}
+                label={t("venue")}
+                value={tournament.venue ?? tournament.address ?? tournament.city ?? tCommon("online")}
               />
-              <DetailRow icon={Languages} label="Язык" value={languages.join(", ") || "—"} />
+              <DetailRow icon={Languages} label={t("language")} value={languages.join(", ") || "—"} />
               {tournament.level && (
-                <DetailRow icon={Users} label="Уровень" value={LEVEL_LABEL[tournament.level] ?? tournament.level} />
+                <DetailRow
+                  icon={Users}
+                  label={t("level")}
+                  value={tEnum(`level.${tournament.level}`)}
+                />
               )}
-              <DetailRow icon={Wallet} label="Стоимость" value={formatPrice(tournament.price)} />
+              <DetailRow
+                icon={Wallet}
+                label={t("price")}
+                value={tournament.price ? formatPriceValue(tournament.price, locale) : t("free")}
+              />
               <DetailRow
                 icon={UserIcon}
-                label="Организатор"
+                label={t("organizer")}
                 value={`${tournament.organizer.firstName} ${tournament.organizer.lastName}`}
               />
             </dl>
@@ -385,7 +410,7 @@ export default async function TournamentDetailPage({
                 {tournament.email && (
                   <a
                     href={`mailto:${tournament.email}`}
-                    aria-label="Написать организатору"
+                    aria-label={t("emailLabel")}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 transition-colors hover:bg-brand-100"
                   >
                     <MailIcon size={16} />
@@ -396,16 +421,23 @@ export default async function TournamentDetailPage({
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-lg font-bold text-navy-900">Ключевые даты</h2>
+            <h2 className="text-lg font-bold text-navy-900">{t("keyDates")}</h2>
             <ul className="mt-5 space-y-4">
-              <KeyDate label="Дедлайн регистрации" date={tournament.registrationDeadline} highlight />
-              <KeyDate label="Дата проведения" date={tournament.startDate} />
-              {tournament.endDate && <KeyDate label="Окончание" date={tournament.endDate} />}
+              <KeyDate
+                label={t("deadline")}
+                date={tournament.registrationDeadline}
+                locale={locale}
+                highlight
+              />
+              <KeyDate label={t("startDate")} date={tournament.startDate} locale={locale} />
+              {tournament.endDate && (
+                <KeyDate label={t("endDate")} date={tournament.endDate} locale={locale} />
+              )}
             </ul>
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-lg font-bold text-navy-900">Организатор</h2>
+            <h2 className="text-lg font-bold text-navy-900">{t("organizer")}</h2>
             <div className="mt-4 flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-navy-900 text-sm font-semibold text-white">
                 {tournament.organizer.firstName[0]}
@@ -421,7 +453,7 @@ export default async function TournamentDetailPage({
             {tournament.organizer.email && (
               <Button asChild variant="outline" size="sm" className="mt-4 w-full">
                 <a href={`mailto:${tournament.organizer.email}`}>
-                  <MailIcon size={16} /> Связаться с организатором
+                  <MailIcon size={16} /> {t("contactOrganizer")}
                 </a>
               </Button>
             )}
@@ -432,32 +464,32 @@ export default async function TournamentDetailPage({
       <Container className="pb-16">
         <CtaBanner
           icon={Trophy}
-          title="Готовы принять участие?"
-          description={`Присоединяйтесь к «${tournament.title}» и станьте частью сообщества!`}
+          title={t("ctaTitle")}
+          description={t("ctaDescription", { title: tournament.title })}
         >
           {myRegistration ? (
             <Badge tone={REG_STATUS_TONE[myRegistration.status] ?? "gray"} className="bg-white px-4 py-2 text-sm">
-              {REG_STATUS_LABEL[myRegistration.status] ?? myRegistration.status}
+              {tEnum(`regStatus.${myRegistration.status}`)}
             </Badge>
           ) : isExternal ? (
             open ? (
               <Button asChild size="lg" variant="secondary" className="bg-white text-navy-900 hover:bg-brand-50">
                 <a href={tournament.externalUrl!} target="_blank" rel="noreferrer">
-                  <ExternalLink size={18} /> Регистрация на сайте организатора
+                  <ExternalLink size={18} /> {t("registerExternal")}
                 </a>
               </Button>
             ) : (
               <Button size="lg" disabled variant="secondary" className="bg-white/50 text-navy-900">
-                Регистрация завершена
+                {t("registrationClosed")}
               </Button>
             )
           ) : open ? (
             <Button asChild size="lg" variant="secondary" className="bg-white text-navy-900 hover:bg-brand-50">
-              <Link href={`/tournaments/${tournament.id}/register`}>Зарегистрироваться</Link>
+              <Link href={`/tournaments/${tournament.id}/register`}>{t("register")}</Link>
             </Button>
           ) : (
             <Button size="lg" disabled variant="secondary" className="bg-white/50 text-navy-900">
-              Регистрация завершена
+              {t("registrationClosed")}
             </Button>
           )}
         </CtaBanner>
@@ -478,7 +510,17 @@ function DetailRow({ icon: Icon, label, value }: { icon: LucideIcon; label: stri
   );
 }
 
-function KeyDate({ label, date, highlight }: { label: string; date: Date; highlight?: boolean }) {
+function KeyDate({
+  label,
+  date,
+  locale,
+  highlight,
+}: {
+  label: string;
+  date: Date;
+  locale: string;
+  highlight?: boolean;
+}) {
   return (
     <li className="flex items-start gap-3">
       <span
@@ -487,7 +529,7 @@ function KeyDate({ label, date, highlight }: { label: string; date: Date; highli
       />
       <div>
         <p className={cn("text-sm font-medium", highlight ? "text-rose-600" : "text-ink")}>{label}</p>
-        <p className="text-sm text-muted">{formatDateRu(date)}</p>
+        <p className="text-sm text-muted">{formatDate(date, locale)}</p>
       </div>
     </li>
   );

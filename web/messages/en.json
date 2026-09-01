@@ -5,19 +5,16 @@
     "keywords": "debate tournaments, debate Kazakhstan, MUN conferences, Model UN, debate tournaments Almaty, debate tournaments Astana, school debate",
     "ogLocale": "en_US"
   },
-
   "common": {
     "skipToContent": "Skip to content",
     "online": "Online",
     "more": "Details",
     "back": "Back"
   },
-
   "locale": {
     "label": "Interface language",
     "switchTo": "Switch to {language}"
   },
-
   "nav": {
     "home": "Home",
     "tournaments": "Tournaments",
@@ -34,7 +31,6 @@
     "menu": "Menu",
     "mobileMenu": "Mobile menu"
   },
-
   "footer": {
     "tagline": "A platform for finding and organising debate tournaments and MUN conferences across Kazakhstan.",
     "navTitle": "Navigation",
@@ -49,7 +45,6 @@
     "telegramLabel": "Telegram {handle}",
     "emailLabel": "Email {email}"
   },
-
   "home": {
     "badge": "#1 debate and MUN platform in Kazakhstan",
     "heroTitle": "Find debate tournaments and MUN",
@@ -57,18 +52,15 @@
     "heroSubtitle": "Every current event on one platform — find it and register in minutes.",
     "viewTournaments": "Browse tournaments",
     "postTournament": "Post a tournament",
-
     "upcomingTitle": "Upcoming tournaments",
     "viewAll": "See all tournaments",
     "emptyTitle": "No published tournaments yet.",
     "emptyDescription": "Check back later — new tournaments and conferences appear regularly.",
-
     "aboutTitle": "About MyDebate",
     "aboutImageAlt": "Debate tournament participants: a speaker at the podium in front of a judging panel",
     "aboutP1": "MyDebate is a single platform built for the debate and Model United Nations community.",
     "aboutP2": "It solves the problem of scattered information by bringing tournaments, conferences and educational events together in one place.",
     "aboutP3": "You can quickly find events that suit you, compare them and decide whether to take part — without digging through group chats and social media.",
-
     "advantagesTitle": "Why MyDebate",
     "advantages": {
       "accessTitle": "All tournaments in one place",
@@ -80,18 +72,15 @@
       "fastTitle": "Registration in a few clicks",
       "fastDescription": "Go from finding an event to applying in moments."
     },
-
     "howItWorksTitle": "How it works",
     "steps": {
       "choose": "Pick a tournament or conference that suits you",
       "read": "Read the details of the event",
       "apply": "Go to registration and submit your application"
     },
-
     "ctaTitle": "Start looking for your next tournament",
     "ctaDescription": "Join the debate community and sharpen your skills!"
   },
-
   "catalog": {
     "title": "All tournaments",
     "subtitle": "Find debate and MUN events across Kazakhstan",
@@ -104,10 +93,91 @@
     "ctaDescription": "Create your own and bring the best participants together!",
     "ctaButton": "Create tournament"
   },
-
   "tournamentCard": {
     "registrationOpen": "Registration open",
     "registrationClosed": "Registration closed",
     "details": "Details"
+  },
+  "enums": {
+    "format": {
+      "DEBATES": "Debate",
+      "MUN": "MUN"
+    },
+    "level": {
+      "BEGINNER": "Beginner",
+      "INTERMEDIATE": "Intermediate",
+      "ADVANCED": "Advanced"
+    },
+    "locationType": {
+      "ONLINE": "Online",
+      "OFFLINE": "Offline"
+    },
+    "regStatus": {
+      "PENDING": "Application under review",
+      "ACCEPTED": "Application accepted",
+      "CONFIRMED": "Registration confirmed",
+      "WAITLIST": "On the waiting list",
+      "REJECTED": "Application declined"
+    }
+  },
+  "filters": {
+    "title": "Filters",
+    "sort": "Sort",
+    "sortNearest": "Soonest first",
+    "sortNewest": "Newest first",
+    "searchLabel": "Search by tournament or organiser",
+    "searchPlaceholder": "Search by tournament name, city or organiser",
+    "format": "Format",
+    "allFormats": "All formats",
+    "locationType": "Event type",
+    "allLocationTypes": "Online and offline",
+    "city": "City",
+    "allCities": "All cities",
+    "date": "Event date",
+    "level": "Level",
+    "allLevels": "All levels",
+    "active": "Active:",
+    "resetAll": "Clear all",
+    "removeFilter": "— remove filter",
+    "chipSearch": "Search",
+    "chipType": "Type",
+    "chipDate": "Date"
+  },
+  "tournament": {
+    "about": "About the tournament",
+    "committees": "Committees",
+    "sections": "Tournament sections",
+    "details": "Tournament details",
+    "startDate": "Event date",
+    "deadline": "Registration deadline",
+    "venue": "Venue",
+    "language": "Language",
+    "price": "Price",
+    "free": "Free",
+    "organizer": "Organiser",
+    "keyDates": "Key dates",
+    "endDate": "Ends",
+    "contactOrganizer": "Contact the organiser",
+    "register": "Register",
+    "registerExternal": "Register on the organiser's site",
+    "registrationClosed": "Registration closed",
+    "ctaTitle": "Ready to take part?",
+    "ctaDescription": "Join “{title}” and become part of the community!",
+    "instagramLabel": "Organiser's Instagram",
+    "tiktokLabel": "Organiser's TikTok",
+    "telegramLabel": "Organiser's Telegram",
+    "emailLabel": "Email the organiser",
+    "notFound": "Tournament not found",
+    "format": "Format",
+    "level": "Level"
+  },
+  "datePicker": {
+    "placeholder": "dd.mm.yyyy",
+    "clear": "Clear date",
+    "open": "Open calendar",
+    "label": "Pick a date",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "today": "Today"
   }
 }

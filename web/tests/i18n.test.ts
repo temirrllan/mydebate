@@ -76,6 +76,16 @@ describe("словари переводов", () => {
         "common.online", // «Онлайн» — то же слово в казахском
         "footer.navTitle", // «Навигация»
         "nav.profile", // «Профиль»
+        "filters.format", // «Формат» — заимствование, в казахском так же
+        "tournament.format",
+        // MUN и уровни (Beginner/Intermediate/Advanced) — устоявшиеся термины
+        // дебатного сообщества, их не переводят ни на один из трёх языков.
+        "enums.format.MUN",
+        "enums.level.BEGINNER",
+        "enums.level.INTERMEDIATE",
+        "enums.level.ADVANCED",
+        "enums.locationType.ONLINE", // «Онлайн» / «Офлайн» — те же слова
+        "enums.locationType.OFFLINE",
       ];
 
       const untranslated = ruKeys.filter(
