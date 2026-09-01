@@ -1,25 +1,33 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Mail, Phone, MapPin } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/ui/container";
 import { Logo } from "./logo";
 import { InstagramIcon, TelegramIcon } from "@/components/icons/social";
 import { SITE_CONTACTS } from "@/lib/site";
 
+// Подписи приходят из словаря по ключу — как и в шапке (components/layout/
+// navbar.tsx), список остаётся структурой, а не текстом.
 const NAV = [
-  { href: "/", label: "Главная" },
-  { href: "/tournaments", label: "Турниры" },
-  { href: "/about", label: "О нас" },
-  { href: "/contacts", label: "Контакты" },
-];
+  { href: "/", key: "home" },
+  { href: "/tournaments", key: "tournaments" },
+  { href: "/about", key: "about" },
+  { href: "/contacts", key: "contacts" },
+] as const;
 
 const SUPPORT = [
-  { href: "/help", label: "Помощь" },
-  { href: "/rules", label: "Правила" },
-  { href: "/privacy", label: "Политика конфиденциальности" },
-  { href: "/terms", label: "Условия использования" },
-];
+  { href: "/help", key: "help" },
+  { href: "/rules", key: "rules" },
+  { href: "/privacy", key: "privacy" },
+  { href: "/terms", key: "terms" },
+] as const;
 
-export function Footer() {
+export async function Footer() {
+  // Подвал — серверный компонент, поэтому getTranslations, а не хук
+  // useTranslations: он ничего не делает на клиенте и незачем тащить его
+  // словарь в бандл.
+  const t = await getTranslations("footer");
+  const tNav = await getTranslations("nav");
   return (
     <footer className="border-t border-line bg-white">
       <Container className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
@@ -27,15 +35,14 @@ export function Footer() {
         <div className="lg:col-span-1">
           <Logo />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
-            Платформа для поиска и организации дебатных турниров и MUN
-            конференций по всему Казахстану.
+            {t("tagline")}
           </p>
           <div className="mt-5 flex items-center gap-3 text-muted">
             <a
               href={SITE_CONTACTS.instagram.url}
               target="_blank"
               rel="noreferrer"
-              aria-label={`Instagram ${SITE_CONTACTS.instagram.handle}`}
+              aria-label={t("instagramLabel", { handle: SITE_CONTACTS.instagram.handle })}
               className="hover:text-brand-600"
             >
               <InstagramIcon />
@@ -44,14 +51,14 @@ export function Footer() {
               href={SITE_CONTACTS.telegram.url}
               target="_blank"
               rel="noreferrer"
-              aria-label={`Telegram ${SITE_CONTACTS.telegram.handle}`}
+              aria-label={t("telegramLabel", { handle: SITE_CONTACTS.telegram.handle })}
               className="hover:text-brand-600"
             >
               <TelegramIcon />
             </a>
             <a
               href={`mailto:${SITE_CONTACTS.email}`}
-              aria-label={`Написать на ${SITE_CONTACTS.email}`}
+              aria-label={t("emailLabel", { email: SITE_CONTACTS.email })}
               className="hover:text-brand-600"
             >
               <Mail size={20} />
@@ -61,7 +68,7 @@ export function Footer() {
 
         {/* Навигация */}
         <div>
-          <h3 className="text-sm font-semibold text-ink">Навигация</h3>
+          <h3 className="text-sm font-semibold text-ink">{t("navTitle")}</h3>
           <ul className="mt-4 space-y-3">
             {NAV.map((item) => (
               <li key={item.href}>
@@ -69,7 +76,7 @@ export function Footer() {
                   href={item.href}
                   className="text-sm text-muted hover:text-brand-600"
                 >
-                  {item.label}
+                  {tNav(item.key)}
                 </Link>
               </li>
             ))}
@@ -78,7 +85,7 @@ export function Footer() {
 
         {/* Поддержка */}
         <div>
-          <h3 className="text-sm font-semibold text-ink">Поддержка</h3>
+          <h3 className="text-sm font-semibold text-ink">{t("supportTitle")}</h3>
           <ul className="mt-4 space-y-3">
             {SUPPORT.map((item) => (
               <li key={item.href}>
@@ -86,7 +93,7 @@ export function Footer() {
                   href={item.href}
                   className="text-sm text-muted hover:text-brand-600"
                 >
-                  {item.label}
+                  {t(item.key)}
                 </Link>
               </li>
             ))}
@@ -95,7 +102,7 @@ export function Footer() {
 
         {/* Контакты */}
         <div>
-          <h3 className="text-sm font-semibold text-ink">Контакты</h3>
+          <h3 className="text-sm font-semibold text-ink">{t("contactsTitle")}</h3>
           <ul className="mt-4 space-y-3 text-sm text-muted">
             <li className="flex items-center gap-2.5">
               <Mail size={16} className="text-brand-600" />
@@ -126,7 +133,11 @@ export function Footer() {
       <div className="border-t border-line">
         <Container className="py-5">
           <p className="text-xs text-muted">
-            © 2026 MyDebate. Все права защищены.
+            {/* Год берём из системного времени: зашитый «2026» в подвале
+                устаревает молча — его никто не замечает годами. */}
+            {/* Год — строкой, а не числом: числовой плейсхолдер ICU
+                форматируется по локали, и 2026 превратилось бы в «2 026». */}
+            {t("copyright", { year: String(new Date().getFullYear()) })}
           </p>
         </Container>
       </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { Link } from "@/i18n/navigation";
 
 export const metadata: Metadata = { title: "Условия использования" };
 
@@ -20,9 +21,9 @@ export default function TermsPage() {
           <p>
             Используя платформу MyDebate, вы соглашаетесь с правилами
             размещения и участия в турнирах, описанными на странице{" "}
-            <a href="/rules" className="font-medium text-brand-600 hover:text-brand-700">
+            <Link href="/rules" className="font-medium text-brand-600 hover:text-brand-700">
               «Правила и условия»
-            </a>
+            </Link>
             . MyDebate предоставляет информационные услуги по поиску,
             публикации и регистрации на дебатные турниры и MUN-конференции.
           </p>

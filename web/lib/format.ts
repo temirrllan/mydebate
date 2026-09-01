@@ -2,6 +2,7 @@
 // Используется карточкой турнира (components/tournaments/tournament-card.tsx)
 // и страницами каталога/детали турнира в следующих этапах — держите здесь,
 // не дублируйте по страницам.
+import { LOCALE_TAG, type Locale } from "@/i18n/routing";
 import {
   TournamentFormat,
   Level,
@@ -127,14 +128,31 @@ export function getTournamentStatusDisplay(
   };
 }
 
-/** «11 мая 2024» — русская локаль, без времени. */
-export function formatDateRu(date: Date | string): string {
+/**
+ * «11 мая 2024» / «11 мамыр 2024» / «11 May 2024» — дата на языке интерфейса.
+ *
+ * timeZone: "UTC" обязателен. Даты турниров приходят из <input type="date"> и
+ * лежат в базе как UTC-полночь; без явного пояса Intl форматирует их в поясе
+ * сервера, и на любом сервере западнее Гринвича дата съезжала бы на день
+ * назад — турнир 1 октября показывался бы как 30 сентября.
+ */
+export function formatDate(date: Date | string, locale: string): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   }).format(d);
+}
+
+/**
+ * @deprecated Осталось на страницах, до которых ещё не дошла локализация.
+ * В переведённых местах используйте formatDate(date, locale) — иначе
+ * казахоязычный пользователь видит русские названия месяцев.
+ */
+export function formatDateRu(date: Date | string): string {
+  return formatDate(date, "ru");
 }
 
 /**
