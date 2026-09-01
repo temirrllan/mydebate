@@ -80,6 +80,7 @@ describe("словари переводов", () => {
         "nav.profile", // «Профиль»
         "filters.format", // «Формат» — заимствование, в казахском так же
         "tournament.format",
+        "registration.asideFormat", // «Формат: …» — то же слово
         // MUN и уровни (Beginner/Intermediate/Advanced) — устоявшиеся термины
         // дебатного сообщества, их не переводят ни на один из трёх языков.
         "enums.format.MUN",

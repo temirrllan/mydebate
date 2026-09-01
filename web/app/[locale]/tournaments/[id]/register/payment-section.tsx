@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { UploadCloud, Loader2, X, FileText, Copy, Check, CreditCard, User, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { FieldError } from "@/components/auth/field-error";
-import { formatPrice } from "@/lib/format";
+import { formatPriceValue } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -33,6 +34,8 @@ export function PaymentSection({
   paymentRecipient: string | null;
   errors?: string[];
 }) {
+  const t = useTranslations("registration");
+  const locale = useLocale();
   const [receiptUrl, setReceiptUrl] = useState("");
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -49,13 +52,13 @@ export function PaymentSection({
       const res = await fetch("/api/uploads/payment-receipt", { method: "POST", body: fd });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
-        setUploadError(data.error ?? "Не удалось загрузить чек. Попробуйте позже.");
+        setUploadError(data.error ?? t("uploadFailed"));
         return;
       }
       setReceiptUrl(data.url);
       setFileName(file.name);
     } catch {
-      setUploadError("Не удалось загрузить чек. Проверьте соединение с интернетом.");
+      setUploadError(t("uploadNetworkFailed"));
     } finally {
       setUploading(false);
     }
@@ -79,34 +82,37 @@ export function PaymentSection({
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
           <CreditCard size={20} />
         </span>
-        <h2 className="text-lg font-bold text-navy-900">3. Подтверждение оплаты</h2>
+        <h2 className="text-lg font-bold text-navy-900">{t("step3")}</h2>
       </div>
 
       <div className="mt-5 flex items-start gap-3 rounded-[var(--radius-btn)] bg-brand-50/70 p-4 text-sm text-ink">
         <Info size={18} className="mt-0.5 shrink-0 text-brand-600" />
         <p>
-          Для завершения регистрации оплатите взнос{" "}
-          <strong className="font-semibold">{formatPrice(price)}</strong> по реквизитам ниже и
-          приложите чек. Перевод идёт напрямую организатору — платформа платежи не проводит.
+          {t.rich("paymentIntro", {
+            price: formatPriceValue(price, locale),
+            // Сумму выделяем жирным: тег живёт прямо в строке словаря, чтобы
+            // переводчик мог поставить его в нужное место фразы.
+            b: (chunks) => <strong className="font-semibold">{chunks}</strong>,
+          })}
         </p>
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         {/* Реквизиты */}
         <div className="rounded-[var(--radius-btn)] border border-line p-4">
-          <p className="text-sm font-semibold text-ink">Реквизиты для оплаты</p>
+          <p className="text-sm font-semibold text-ink">{t("paymentDetails")}</p>
           <dl className="mt-3 space-y-3 text-sm">
             {paymentMethod && (
               <div className="flex items-center justify-between gap-3">
                 <dt className="flex items-center gap-2 text-muted">
-                  <CreditCard size={15} /> Способ оплаты
+                  <CreditCard size={15} /> {t("paymentMethod")}
                 </dt>
                 <dd className="font-semibold text-ink">{paymentMethod}</dd>
               </div>
             )}
             <div className="flex items-center justify-between gap-3">
               <dt className="flex items-center gap-2 text-muted">
-                <FileText size={15} /> Номер для оплаты
+                <FileText size={15} /> {t("paymentAccount")}
               </dt>
               <dd className="flex items-center gap-2">
                 <span className="font-semibold text-ink">{paymentAccount}</span>
@@ -114,7 +120,7 @@ export function PaymentSection({
                   type="button"
                   onClick={copyAccount}
                   className="rounded-md p-1 text-muted transition-colors hover:bg-canvas hover:text-brand-600"
-                  aria-label="Скопировать номер для оплаты"
+                  aria-label={t("copyAccount")}
                 >
                   {copied ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
                 </button>
@@ -122,20 +128,20 @@ export function PaymentSection({
             </div>
             <div className="flex items-start justify-between gap-3">
               <dt className="flex items-center gap-2 text-muted">
-                <User size={15} /> Получатель
+                <User size={15} /> {t("paymentRecipient")}
               </dt>
               <dd className="text-right font-semibold text-ink">{paymentRecipient}</dd>
             </div>
           </dl>
           <p aria-live="polite" className="sr-only">
-            {copied ? "Номер скопирован" : ""}
+            {copied ? t("copied") : ""}
           </p>
         </div>
 
         {/* Загрузка чека */}
         <div>
           <label htmlFor="receipt-upload" className="text-sm font-semibold text-ink">
-            Чек об оплате <span className="text-rose-500">*</span>
+            {t("receipt")} <span className="text-rose-500">*</span>
           </label>
 
           <div className="mt-3">
@@ -144,7 +150,7 @@ export function PaymentSection({
                 <FileText size={20} className="shrink-0 text-emerald-600" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-ink">{fileName}</p>
-                  <p className="text-xs text-emerald-700">Чек загружен</p>
+                  <p className="text-xs text-emerald-700">{t("receiptUploaded")}</p>
                 </div>
                 <button
                   type="button"
@@ -155,7 +161,7 @@ export function PaymentSection({
                     if (inputRef.current) inputRef.current.value = "";
                   }}
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-white hover:text-rose-600"
-                  aria-label="Удалить загруженный чек"
+                  aria-label={t("receiptRemove")}
                 >
                   <X size={15} />
                 </button>
@@ -171,13 +177,13 @@ export function PaymentSection({
                 {uploading ? (
                   <>
                     <Loader2 size={22} className="animate-spin text-brand-600" />
-                    <span className="text-sm font-medium text-muted">Загрузка…</span>
+                    <span className="text-sm font-medium text-muted">{t("uploading")}</span>
                   </>
                 ) : (
                   <>
                     <UploadCloud size={22} className="text-brand-600" />
-                    <span className="text-sm font-medium text-ink">Нажмите, чтобы выбрать файл</span>
-                    <span className="text-xs text-muted">JPG, PNG, WebP или PDF — до 10 МБ</span>
+                    <span className="text-sm font-medium text-ink">{t("receiptPick")}</span>
+                    <span className="text-xs text-muted">{t("receiptHint")}</span>
                   </>
                 )}
                 <input

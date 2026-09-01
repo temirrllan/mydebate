@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { CheckCircle2, Send, User, GraduationCap, School, Phone, Mail, Users2, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -15,7 +16,6 @@ import { registerForTournament } from "@/lib/actions/registrations";
 // registerForTournament именно так и используется). Текст успеха всегда
 // приходит из `state.message`, которое сервер заполняет этой же константой.
 import { Level } from "@/lib/enums";
-import { LEVEL_LABEL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PaymentSection } from "./payment-section";
 
@@ -72,6 +72,8 @@ export function RegisterForm({
     recipient: string | null;
   } | null;
 }) {
+  const t = useTranslations("registration");
+  const tEnum = useTranslations("enums");
   const boundAction = registerForTournament.bind(null, tournamentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
   const [additionalInfo, setAdditionalInfo] = useState("");
@@ -90,14 +92,14 @@ export function RegisterForm({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <CheckCircle2 size={30} />
         </div>
-        <h2 className="mt-5 text-xl font-bold text-navy-900">Заявка отправлена!</h2>
+        <h2 className="mt-5 text-xl font-bold text-navy-900">{t("sentTitle")}</h2>
         <p className="mt-2 text-muted">{state.message}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/profile?tab=applications">Мои заявки</Link>
+            <Link href="/profile?tab=applications">{t("myApplications")}</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href={`/tournaments/${tournamentId}`}>К турниру</Link>
+            <Link href={`/tournaments/${tournamentId}`}>{t("toTournament")}</Link>
           </Button>
         </div>
       </Card>
@@ -110,14 +112,14 @@ export function RegisterForm({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-600">
           <Info size={30} />
         </div>
-        <h2 className="mt-5 text-xl font-bold text-navy-900">Вы уже зарегистрированы на этот турнир</h2>
-        <p className="mt-2 text-muted">Статус вашей заявки можно посмотреть в личном кабинете.</p>
+        <h2 className="mt-5 text-xl font-bold text-navy-900">{t("alreadyTitle")}</h2>
+        <p className="mt-2 text-muted">{t("alreadyText")}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/profile?tab=applications">Мои заявки</Link>
+            <Link href="/profile?tab=applications">{t("myApplications")}</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href={`/tournaments/${tournamentId}`}>К турниру</Link>
+            <Link href={`/tournaments/${tournamentId}`}>{t("toTournament")}</Link>
           </Button>
         </div>
       </Card>
@@ -137,13 +139,13 @@ export function RegisterForm({
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
             <User size={18} />
           </div>
-          <h2 className="text-lg font-bold text-navy-900">1. Личная информация</h2>
+          <h2 className="text-lg font-bold text-navy-900">{t("step1")}</h2>
         </div>
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="fullName" className="text-sm font-medium text-ink">
-              Полное имя <span className="text-rose-500">*</span>
+              {t("fullName")} <span className="text-rose-500">*</span>
             </label>
             <div className="relative mt-1.5">
               <User size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -152,7 +154,7 @@ export function RegisterForm({
                 name="fullName"
                 required
                 defaultValue={defaultFullName}
-                placeholder="Введите ваше имя"
+                placeholder={t("fullNamePlaceholder")}
                 className="pl-10"
                 invalid={Boolean(fieldErrors.fullName?.length)}
                 aria-invalid={Boolean(fieldErrors.fullName?.length)}
@@ -164,7 +166,7 @@ export function RegisterForm({
 
           <div>
             <label htmlFor="gradeOrCourse" className="text-sm font-medium text-ink">
-              Класс / Курс <span className="text-rose-500">*</span>
+              {t("grade")} <span className="text-rose-500">*</span>
             </label>
             <div className="relative mt-1.5">
               <GraduationCap
@@ -175,7 +177,7 @@ export function RegisterForm({
                 id="gradeOrCourse"
                 name="gradeOrCourse"
                 required
-                placeholder="Например: 11 класс / 1 курс"
+                placeholder={t("gradePlaceholder")}
                 className="pl-10"
                 invalid={Boolean(fieldErrors.gradeOrCourse?.length)}
                 aria-invalid={Boolean(fieldErrors.gradeOrCourse?.length)}
@@ -189,7 +191,7 @@ export function RegisterForm({
 
           <div className="sm:col-span-2">
             <label htmlFor="schoolOrUniversity" className="text-sm font-medium text-ink">
-              Школа / Университет <span className="text-rose-500">*</span>
+              {t("school")} <span className="text-rose-500">*</span>
             </label>
             <div className="relative mt-1.5">
               <School size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -197,7 +199,7 @@ export function RegisterForm({
                 id="schoolOrUniversity"
                 name="schoolOrUniversity"
                 required
-                placeholder="Введите название вашей школы или университета"
+                placeholder={t("schoolPlaceholder")}
                 className="pl-10"
                 invalid={Boolean(fieldErrors.schoolOrUniversity?.length)}
                 aria-invalid={Boolean(fieldErrors.schoolOrUniversity?.length)}
@@ -211,7 +213,7 @@ export function RegisterForm({
 
           <div>
             <label htmlFor="phone" className="text-sm font-medium text-ink">
-              Номер телефона <span className="text-rose-500">*</span>
+              {t("phone")} <span className="text-rose-500">*</span>
             </label>
             <div className="relative mt-1.5">
               <Phone size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -221,7 +223,7 @@ export function RegisterForm({
                 type="tel"
                 required
                 defaultValue={defaultPhone}
-                placeholder="Например: +7 701 123 45 67"
+                placeholder={t("phonePlaceholder")}
                 className="pl-10"
                 invalid={Boolean(fieldErrors.phone?.length)}
                 aria-invalid={Boolean(fieldErrors.phone?.length)}
@@ -262,7 +264,7 @@ export function RegisterForm({
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
             <Users2 size={18} />
           </div>
-          <h2 className="text-lg font-bold text-navy-900">2. Информация об участии</h2>
+          <h2 className="text-lg font-bold text-navy-900">{t("step2")}</h2>
         </div>
 
         <div className="mt-5 space-y-5">
@@ -272,14 +274,14 @@ export function RegisterForm({
             <>
               <div>
                 <label htmlFor="teamName" className="text-sm font-medium text-ink">
-                  Название команды <span className="text-rose-500">*</span>
+                  {t("teamName")} <span className="text-rose-500">*</span>
                 </label>
                 <div className="mt-1.5">
                   <Input
                     id="teamName"
                     name="teamName"
                     required
-                    placeholder="Введите название вашей команды"
+                    placeholder={t("teamNamePlaceholder")}
                     invalid={Boolean(fieldErrors.teamName?.length)}
                     aria-invalid={Boolean(fieldErrors.teamName?.length)}
                     aria-describedby={fieldErrors.teamName?.length ? "teamName-error" : undefined}
@@ -290,14 +292,14 @@ export function RegisterForm({
 
               <div>
                 <label htmlFor="teammateNames" className="text-sm font-medium text-ink">
-                  Имена тиммейтов <span className="text-muted">(если командный формат)</span>
+                  {t("teammates")} <span className="text-muted">{t("teammatesHint")}</span>
                 </label>
                 <div className="mt-1.5">
                   <textarea
                     id="teammateNames"
                     name="teammateNames"
                     rows={2}
-                    placeholder="Введите имена ваших тиммейтов (через запятую)"
+                    placeholder={t("teammatesPlaceholder")}
                     className="w-full rounded-[var(--radius-btn)] border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                     aria-describedby={
                       fieldErrors.teammateNames?.length ? "teammateNames-error" : undefined
@@ -312,7 +314,7 @@ export function RegisterForm({
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="experienceLevel" className="text-sm font-medium text-ink">
-                Уровень опыта <span className="text-muted">(необязательно)</span>
+                {t("experience")} <span className="text-muted">{t("optional")}</span>
               </label>
               <div className="mt-1.5">
                 <Select
@@ -323,10 +325,10 @@ export function RegisterForm({
                     fieldErrors.experienceLevel?.length ? "experienceLevel-error" : undefined
                   }
                 >
-                  <option value="">Выберите ваш уровень</option>
+                  <option value="">{t("experiencePlaceholder")}</option>
                   {Object.values(Level).map((l) => (
                     <option key={l} value={l}>
-                      {LEVEL_LABEL[l] ?? l}
+                      {tEnum(`level.${l}`)}
                     </option>
                   ))}
                 </Select>
@@ -340,7 +342,7 @@ export function RegisterForm({
             {!isMun && (
               <div>
                 <label htmlFor="preferredLanguage" className="text-sm font-medium text-ink">
-                  Предпочитаемый язык <span className="text-rose-500">*</span>
+                  {t("language")} <span className="text-rose-500">*</span>
                 </label>
                 <div className="mt-1.5">
                   <Select
@@ -355,7 +357,7 @@ export function RegisterForm({
                     }
                   >
                     <option value="" disabled>
-                      Выберите язык
+                      {t("languagePlaceholder")}
                     </option>
                     {(languages.length > 0 ? languages : ["Казакша", "Русский", "English"]).map((lang) => (
                       <option key={lang} value={lang}>
@@ -378,7 +380,7 @@ export function RegisterForm({
 
           <div>
             <label htmlFor="additionalInfo" className="text-sm font-medium text-ink">
-              Дополнительная информация <span className="text-muted">(необязательно)</span>
+              {t("additionalInfo")} <span className="text-muted">{t("optional")}</span>
             </label>
             <div className="relative mt-1.5">
               <textarea
@@ -386,7 +388,7 @@ export function RegisterForm({
                 name="additionalInfo"
                 rows={3}
                 maxLength={500}
-                placeholder="Дополнительная информация"
+                placeholder={t("additionalInfo")}
                 value={additionalInfo}
                 onChange={(e) => setAdditionalInfo(e.target.value)}
                 className="w-full rounded-[var(--radius-btn)] border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
@@ -424,13 +426,13 @@ export function RegisterForm({
             aria-describedby={fieldErrors.agree?.length ? "agree-error" : undefined}
           />
           <span>
-            Я подтверждаю, что указанная информация верна, и соглашаюсь с{" "}
+            {t("agreePrefix")}{" "}
             <Link href="/rules" className="font-medium text-brand-600 hover:text-brand-700">
-              правилами турнира
+              {t("agreeRules")}
             </Link>{" "}
-            и{" "}
+            {t("agreeAnd")}{" "}
             <Link href="/privacy" className="font-medium text-brand-600 hover:text-brand-700">
-              обработкой персональных данных
+              {t("agreePrivacy")}
             </Link>
             .
           </span>
@@ -440,10 +442,10 @@ export function RegisterForm({
 
       <Button type="submit" size="lg" className="w-full justify-center" disabled={pending}>
         {pending ? (
-          "Отправляем заявку…"
+          t("submitPending")
         ) : (
           <>
-            <Send size={18} /> Отправить заявку на «{tournamentTitle}»
+            <Send size={18} /> {t("submit", { title: tournamentTitle })}
           </>
         )}
       </Button>
@@ -471,15 +473,16 @@ function CommitteePicker({
   committees: Committee[];
   errors?: string[];
 }) {
+  const t = useTranslations("registration");
   const invalid = Boolean(errors?.length);
 
   return (
     <fieldset aria-describedby={invalid ? "committee-error" : undefined}>
       <legend className="text-sm font-medium text-ink">
-        Предпочитаемый комитет <span className="text-rose-500">*</span>
+        {t("committee")} <span className="text-rose-500">*</span>
       </legend>
       <p className="mt-1 text-sm text-muted">
-        Выберите комитет, в котором хотите работать делегатом.
+        {t("committeeHint")}
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">

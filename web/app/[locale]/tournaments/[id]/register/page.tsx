@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Calendar, MapPin, Globe, Clock, Wallet, Info } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
@@ -12,27 +13,39 @@ import { getTournamentDetail } from "@/lib/tournaments/queries";
 import { getMyRegistrations } from "@/lib/profile/queries";
 import { requireUser } from "@/lib/auth/session";
 import { RegistrationType, TournamentFormat, parseLanguages } from "@/lib/enums";
-import { FORMAT_LABEL, LOCATION_TYPE_LABEL, formatDateRu, formatPrice, isRegistrationOpen } from "@/lib/format";
+import { formatDate, formatPriceValue, isRegistrationOpen } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { RegisterForm } from "./register-form";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
   const tournament = await getTournamentDetail(id);
-  return { title: tournament ? `Регистрация · ${tournament.title}` : "Регистрация на турнир" };
+  const t = await getTranslations({ locale, namespace: "registration" });
+  return {
+    title: tournament
+      ? t("metaTitle", { title: tournament.title })
+      : t("metaTitleFallback"),
+  };
 }
 
 export default async function TournamentRegisterPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }) {
-  const { id } = await params;
+  const { id, locale } = await params;
   const user = await requireUser(`/tournaments/${id}/register`);
+
+  const t = await getTranslations("registration");
+  const tNav = await getTranslations("nav");
+  const tCommon = await getTranslations("common");
+  const tEnum = await getTranslations("enums");
+  const tCard = await getTranslations("tournamentCard");
+  const tTournament = await getTranslations("tournament");
 
   const tournament = await getTournamentDetail(id);
   if (!tournament) notFound();
@@ -57,26 +70,26 @@ export default async function TournamentRegisterPage({
     <Container className="py-10 sm:py-14">
       <Breadcrumbs
         items={[
-          { label: "Главная", href: "/" },
-          { label: "Турниры", href: "/tournaments" },
+          { label: tNav("home"), href: "/" },
+          { label: tNav("tournaments"), href: "/tournaments" },
           { label: tournament.title, href: `/tournaments/${tournament.id}` },
-          { label: "Регистрация" },
+          { label: t("breadcrumb") },
         ]}
       />
 
       <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">
-        Регистрация на турнир
+        {t("pageTitle")}
       </h1>
 
       {!open && !alreadyRegistered ? (
         <div className="mt-8">
           <EmptyState
             icon={Clock}
-            title="Регистрация завершена."
-            description="Дедлайн регистрации на этот турнир уже прошёл."
+            title={t("closedTitle")}
+            description={t("closedDescription")}
             action={
               <Button asChild>
-                <Link href={`/tournaments/${tournament.id}`}>К турниру</Link>
+                <Link href={`/tournaments/${tournament.id}`}>{t("toTournament")}</Link>
               </Button>
             }
           />
@@ -129,19 +142,21 @@ export default async function TournamentRegisterPage({
                 <h2 className="font-bold text-navy-900">{tournament.title}</h2>
                 <div className="mt-3 space-y-2 text-sm text-muted">
                   <p className="inline-flex items-center gap-1.5">
-                    <Calendar size={15} className="text-brand-600" /> {formatDateRu(tournament.startDate)}
+                    <Calendar size={15} className="text-brand-600" /> {formatDate(tournament.startDate, locale)}
                   </p>
                   <p className="inline-flex items-center gap-1.5">
-                    <MapPin size={15} className="text-brand-600" /> {tournament.city ?? "Онлайн"}
+                    <MapPin size={15} className="text-brand-600" /> {tournament.city ?? tCommon("online")}
                   </p>
                   <p className="inline-flex items-center gap-1.5">
                     <Globe size={15} className="text-brand-600" />
-                    Формат: {FORMAT_LABEL[tournament.format] ?? tournament.format} ·{" "}
-                    {LOCATION_TYPE_LABEL[tournament.locationType] ?? tournament.locationType}
+                    {t("asideFormat", {
+                      format: tEnum(`format.${tournament.format}`),
+                      locationType: tEnum(`locationType.${tournament.locationType}`),
+                    })}
                   </p>
                 </div>
                 <Badge tone="green" className="mt-4">
-                  Регистрация открыта
+                  {tCard("registrationOpen")}
                 </Badge>
               </div>
             </Card>
@@ -150,15 +165,19 @@ export default async function TournamentRegisterPage({
               <dl className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <dt className="inline-flex items-center gap-1.5 text-muted">
-                    <Clock size={15} /> Дедлайн регистрации
+                    <Clock size={15} /> {t("asideDeadline")}
                   </dt>
-                  <dd className="font-medium text-ink">{formatDateRu(tournament.registrationDeadline)}</dd>
+                  <dd className="font-medium text-ink">{formatDate(tournament.registrationDeadline, locale)}</dd>
                 </div>
                 <div className="flex items-center justify-between">
                   <dt className="inline-flex items-center gap-1.5 text-muted">
-                    <Wallet size={15} /> Стоимость участия
+                    <Wallet size={15} /> {t("asidePrice")}
                   </dt>
-                  <dd className="font-medium text-ink">{formatPrice(tournament.price)}</dd>
+                  <dd className="font-medium text-ink">
+                    {tournament.price
+                      ? formatPriceValue(tournament.price, locale)
+                      : tTournament("free")}
+                  </dd>
                 </div>
               </dl>
             </Card>
@@ -166,8 +185,7 @@ export default async function TournamentRegisterPage({
             <Card className="flex gap-3 bg-brand-50/60 p-5">
               <Info size={18} className="mt-0.5 shrink-0 text-brand-600" />
               <p className="text-sm text-muted">
-                После отправки заявки организаторы рассмотрят вашу регистрацию и свяжутся с вами при
-                необходимости.
+                {t("asideNote")}
               </p>
             </Card>
           </aside>
