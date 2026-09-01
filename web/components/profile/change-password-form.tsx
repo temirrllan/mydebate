@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, KeyRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,9 @@ const EMPTY = { currentPassword: "", newPassword: "", confirmPassword: "" };
  * чеклист требований нового пароля повторяет макет регистрации.
  */
 export function ChangePasswordForm() {
+  // Кабинет ещё не переведён целиком, но чеклист требований к паролю общий с
+  // формой регистрации — берём подписи оттуда, чтобы они не разъехались.
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(changePassword, undefined);
   const [values, setValues] = useState(EMPTY);
 
@@ -127,10 +131,10 @@ export function ChangePasswordForm() {
               const passed = req.test(values.newPassword);
               return (
                 <li
-                  key={req.label}
+                  key={req.key}
                   className={passed ? "text-xs text-emerald-600" : "text-xs text-muted"}
                 >
-                  {passed ? "✓" : "○"} {req.label}
+                  {passed ? "✓" : "○"} {t(`password.${req.key}`)}
                 </li>
               );
             })}

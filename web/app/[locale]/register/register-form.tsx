@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Mail, Phone, User, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { passwordRequirements } from "@/lib/validations/auth";
 const initialState: ActionState = undefined;
 
 export function RegisterForm() {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(registerUser, initialState);
   // firstName/lastName/email контролируются так же, как password/confirmPassword:
   // React 19 автоматически сбрасывает несконтролируемые поля формы после
@@ -39,8 +41,8 @@ export function RegisterForm() {
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <div>
-        <h1 className="text-3xl font-extrabold text-navy-900">Создайте аккаунт</h1>
-        <p className="mt-2 text-muted">Присоединяйтесь к MyDebate и откройте новые возможности</p>
+        <h1 className="text-3xl font-extrabold text-navy-900">{t("register.title")}</h1>
+        <p className="mt-2 text-muted">{t("register.subtitle")}</p>
       </div>
 
       {state?.message && (
@@ -49,7 +51,7 @@ export function RegisterForm() {
         </p>
       )}
 
-      <GoogleButton label="Зарегистрироваться через Google" />
+      <GoogleButton label={t("register.google")} />
 
       <OrDivider />
 
@@ -62,7 +64,7 @@ export function RegisterForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="firstName" className="text-sm font-medium text-ink">
-            Имя
+            {t("register.firstName")}
           </label>
           <div className="relative mt-1.5">
             <User
@@ -75,7 +77,7 @@ export function RegisterForm() {
               name="firstName"
               autoComplete="given-name"
               required
-              placeholder="Введите ваше имя"
+              placeholder={t("register.firstNamePlaceholder")}
               className="pl-10"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
@@ -89,7 +91,7 @@ export function RegisterForm() {
 
         <div>
           <label htmlFor="lastName" className="text-sm font-medium text-ink">
-            Фамилия
+            {t("register.lastName")}
           </label>
           <div className="mt-1.5">
             <Input
@@ -97,7 +99,7 @@ export function RegisterForm() {
               name="lastName"
               autoComplete="family-name"
               required
-              placeholder="Введите вашу фамилию"
+              placeholder={t("register.lastNamePlaceholder")}
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               invalid={Boolean(fieldErrors.lastName?.length)}
@@ -111,7 +113,7 @@ export function RegisterForm() {
 
       <div>
         <label htmlFor="email" className="text-sm font-medium text-ink">
-          Email
+          {t("emailLabel")}
         </label>
         <div className="relative mt-1.5">
           <Mail
@@ -125,7 +127,7 @@ export function RegisterForm() {
             type="email"
             autoComplete="email"
             required
-            placeholder="Введите ваш email"
+            placeholder={t("emailPlaceholder")}
             className="pl-10"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -139,7 +141,7 @@ export function RegisterForm() {
 
       <div>
         <label htmlFor="phone" className="text-sm font-medium text-ink">
-          Телефон (необязательно)
+          {t("register.phone")}
         </label>
         <div className="relative mt-1.5">
           <Phone
@@ -152,7 +154,7 @@ export function RegisterForm() {
             name="phone"
             type="tel"
             autoComplete="tel"
-            placeholder="Введите ваш номер телефона"
+            placeholder={t("register.phonePlaceholder")}
             className="pl-10"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -165,7 +167,7 @@ export function RegisterForm() {
 
       <div>
         <label htmlFor="password" className="text-sm font-medium text-ink">
-          Пароль
+          {t("passwordLabel")}
         </label>
         <div className="mt-1.5">
           <PasswordInput
@@ -173,7 +175,7 @@ export function RegisterForm() {
             name="password"
             autoComplete="new-password"
             required
-            placeholder="Создайте пароль"
+            placeholder={t("register.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             invalid={Boolean(fieldErrors.password?.length)}
@@ -186,7 +188,7 @@ export function RegisterForm() {
 
       <div>
         <label htmlFor="confirmPassword" className="text-sm font-medium text-ink">
-          Подтвердите пароль
+          {t("register.confirmPassword")}
         </label>
         <div className="mt-1.5">
           <PasswordInput
@@ -194,7 +196,7 @@ export function RegisterForm() {
             name="confirmPassword"
             autoComplete="new-password"
             required
-            placeholder="Повторите пароль"
+            placeholder={t("register.confirmPlaceholder")}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             onBlur={() => setConfirmTouched(true)}
@@ -209,19 +211,19 @@ export function RegisterForm() {
         </div>
         <FieldError
           id="confirmPassword-error"
-          messages={confirmMismatch ? ["Пароли не совпадают"] : fieldErrors.confirmPassword}
+          messages={confirmMismatch ? [t("register.passwordsMismatch")] : fieldErrors.confirmPassword}
         />
       </div>
 
       {/* Живая индикация требований к паролю — по макету "Пароль должен содержать". */}
       <div className="rounded-lg bg-brand-50/60 px-4 py-3.5">
-        <p className="text-sm font-medium text-ink">Пароль должен содержать:</p>
+        <p className="text-sm font-medium text-ink">{t("password.title")}</p>
         <ul className="mt-2 space-y-1.5" aria-live="polite">
           {passwordRequirements.map((req) => {
             const ok = req.test(password);
             return (
               <li
-                key={req.label}
+                key={req.key}
                 className={cn(
                   "flex items-center gap-2 text-sm",
                   ok ? "text-emerald-600" : "text-muted",
@@ -235,7 +237,7 @@ export function RegisterForm() {
                 >
                   {ok && <Check size={11} strokeWidth={3} />}
                 </span>
-                {req.label}
+                {t(`password.${req.key}`)}
               </li>
             );
           })}
@@ -253,13 +255,13 @@ export function RegisterForm() {
             aria-describedby={fieldErrors.agree?.length ? "agree-error" : undefined}
           />
           <span>
-            Я согласен с{" "}
+            {t("register.agreePrefix")}{" "}
             <Link href="/terms" className="font-medium text-brand-600 hover:text-brand-700">
-              правилами использования
+              {t("register.agreeTerms")}
             </Link>{" "}
-            и{" "}
+            {t("register.agreeAnd")}{" "}
             <Link href="/privacy" className="font-medium text-brand-600 hover:text-brand-700">
-              политикой конфиденциальности
+              {t("register.agreePrivacy")}
             </Link>
           </span>
         </label>
@@ -267,13 +269,13 @@ export function RegisterForm() {
       </div>
 
       <Button type="submit" size="lg" className="w-full justify-center" disabled={pending}>
-        {pending ? "Создаём аккаунт…" : "Создать аккаунт"}
+        {pending ? t("register.pending") : t("register.submit")}
       </Button>
 
       <p className="text-center text-sm text-muted">
-        Уже есть аккаунт?{" "}
+        {t("register.haveAccount")}{" "}
         <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
-          Войти
+          {t("register.login")}
         </Link>
       </p>
     </form>

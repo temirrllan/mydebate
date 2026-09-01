@@ -17,10 +17,14 @@ export const passwordSchema = z
 
 // Отдельные требования пароля для живой индикации на клиенте (checklist в
 // макете). Порядок соответствует макету.
-export const passwordRequirements: { label: string; test: (value: string) => boolean }[] = [
-  { label: "Минимум 8 символов", test: (v) => v.length >= 8 },
-  { label: "Латинские буквы (a-z, A-Z)", test: (v) => /[a-zA-Z]/.test(v) },
-  { label: "Хотя бы одну цифру (0-9)", test: (v) => /[0-9]/.test(v) },
+//
+// Здесь только КЛЮЧ подписи (namespace "auth.password"), а не сам текст:
+// список рендерят клиентские формы регистрации и сброса пароля, и подпись им
+// нужна на языке интерфейса.
+export const passwordRequirements: { key: string; test: (value: string) => boolean }[] = [
+  { key: "minLength", test: (v) => v.length >= 8 },
+  { key: "letters", test: (v) => /[a-zA-Z]/.test(v) },
+  { key: "digit", test: (v) => /[0-9]/.test(v) },
 ];
 
 export const emailSchema = z

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { requestPasswordReset, type ActionState } from "@/lib/actions/auth";
 const initialState: ActionState = undefined;
 
 export function ForgotPasswordForm() {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(requestPasswordReset, initialState);
   const [email, setEmail] = useState("");
 
@@ -19,10 +21,8 @@ export function ForgotPasswordForm() {
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <div>
-        <h1 className="text-3xl font-extrabold text-navy-900">Забыли пароль?</h1>
-        <p className="mt-2 text-muted">
-          Введите email, привязанный к аккаунту — мы отправим ссылку для сброса пароля.
-        </p>
+        <h1 className="text-3xl font-extrabold text-navy-900">{t("forgot.title")}</h1>
+        <p className="mt-2 text-muted">{t("forgot.subtitle")}</p>
       </div>
 
       {state?.success && state.message && (
@@ -33,7 +33,7 @@ export function ForgotPasswordForm() {
 
       <div>
         <label htmlFor="email" className="text-sm font-medium text-ink">
-          Email
+          {t("emailLabel")}
         </label>
         <div className="relative mt-1.5">
           <Mail
@@ -47,7 +47,7 @@ export function ForgotPasswordForm() {
             type="email"
             autoComplete="email"
             required
-            placeholder="Введите ваш email"
+            placeholder={t("emailPlaceholder")}
             className="pl-10"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -60,13 +60,13 @@ export function ForgotPasswordForm() {
       </div>
 
       <Button type="submit" size="lg" className="w-full justify-center" disabled={pending}>
-        {pending ? "Отправляем…" : "Отправить ссылку"}
+        {pending ? t("forgot.pending") : t("forgot.submit")}
       </Button>
 
       <p className="text-center text-sm text-muted">
-        Вспомнили пароль?{" "}
+        {t("forgot.remembered")}{" "}
         <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
-          Войти
+          {t("forgot.login")}
         </Link>
       </p>
     </form>

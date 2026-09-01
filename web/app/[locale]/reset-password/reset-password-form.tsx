@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -13,6 +14,7 @@ import { passwordRequirements } from "@/lib/validations/auth";
 const initialState: ActionState = undefined;
 
 export function ResetPasswordForm({ token }: { token: string }) {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(resetPassword, initialState);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,8 +27,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <div>
-        <h1 className="text-3xl font-extrabold text-navy-900">Новый пароль</h1>
-        <p className="mt-2 text-muted">Придумайте новый пароль для входа в аккаунт.</p>
+        <h1 className="text-3xl font-extrabold text-navy-900">{t("reset.title")}</h1>
+        <p className="mt-2 text-muted">{t("reset.subtitle")}</p>
       </div>
 
       {state?.message && (
@@ -39,7 +41,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
       <div>
         <label htmlFor="password" className="text-sm font-medium text-ink">
-          Новый пароль
+          {t("reset.newPassword")}
         </label>
         <div className="mt-1.5">
           <PasswordInput
@@ -47,7 +49,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             name="password"
             autoComplete="new-password"
             required
-            placeholder="Создайте новый пароль"
+            placeholder={t("reset.newPasswordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             invalid={Boolean(fieldErrors.password?.length)}
@@ -60,7 +62,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
       <div>
         <label htmlFor="confirmPassword" className="text-sm font-medium text-ink">
-          Подтвердите пароль
+          {t("register.confirmPassword")}
         </label>
         <div className="mt-1.5">
           <PasswordInput
@@ -68,7 +70,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             name="confirmPassword"
             autoComplete="new-password"
             required
-            placeholder="Повторите пароль"
+            placeholder={t("register.confirmPlaceholder")}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             onBlur={() => setConfirmTouched(true)}
@@ -83,18 +85,18 @@ export function ResetPasswordForm({ token }: { token: string }) {
         </div>
         <FieldError
           id="confirmPassword-error"
-          messages={confirmMismatch ? ["Пароли не совпадают"] : fieldErrors.confirmPassword}
+          messages={confirmMismatch ? [t("register.passwordsMismatch")] : fieldErrors.confirmPassword}
         />
       </div>
 
       <div className="rounded-lg bg-brand-50/60 px-4 py-3.5">
-        <p className="text-sm font-medium text-ink">Пароль должен содержать:</p>
+        <p className="text-sm font-medium text-ink">{t("password.title")}</p>
         <ul className="mt-2 space-y-1.5" aria-live="polite">
           {passwordRequirements.map((req) => {
             const ok = req.test(password);
             return (
               <li
-                key={req.label}
+                key={req.key}
                 className={cn(
                   "flex items-center gap-2 text-sm",
                   ok ? "text-emerald-600" : "text-muted",
@@ -108,7 +110,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
                 >
                   {ok && <Check size={11} strokeWidth={3} />}
                 </span>
-                {req.label}
+                {t(`password.${req.key}`)}
               </li>
             );
           })}
@@ -116,12 +118,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
       </div>
 
       <Button type="submit" size="lg" className="w-full justify-center" disabled={pending}>
-        {pending ? "Сохраняем…" : "Сохранить новый пароль"}
+        {pending ? t("reset.savePending") : t("reset.saveNewPassword")}
       </Button>
 
       <p className="text-center text-sm text-muted">
         <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
-          Вернуться ко входу
+          {t("reset.backToLogin")}
         </Link>
       </p>
     </form>

@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ResetPasswordForm } from "./reset-password-form";
 
-export const metadata: Metadata = { title: "Новый пароль" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.reset" });
+  return { title: t("metaTitle") };
+}
 
 // Next.js 16: searchParams — Promise, обязательно await.
 export default async function ResetPasswordPage({
@@ -29,22 +38,18 @@ export default async function ResetPasswordPage({
     : null;
   const isValid = Boolean(resetToken && resetToken.expiresAt > new Date());
 
+  const t = await getTranslations("auth");
+
   return (
-    <AuthLayout
-      title="Войдите и откройте все возможности MyDebate"
-      subtitle="Восстановите доступ к аккаунту за пару шагов."
-    >
+    <AuthLayout title={t("sidebarTitle")} subtitle={t("sidebarRecoverSubtitle")}>
       {isValid && token ? (
         <ResetPasswordForm token={token} />
       ) : (
         <div className="space-y-5">
-          <h1 className="text-3xl font-extrabold text-navy-900">Ссылка недействительна</h1>
-          <p className="text-muted">
-            Ссылка для сброса пароля недействительна или срок её действия истёк. Запросите
-            новую ссылку.
-          </p>
+          <h1 className="text-3xl font-extrabold text-navy-900">{t("reset.invalidTitle")}</h1>
+          <p className="text-muted">{t("reset.invalidText")}</p>
           <Button asChild size="lg" className="w-full justify-center">
-            <Link href="/forgot-password">Запросить новую ссылку</Link>
+            <Link href="/forgot-password">{t("reset.requestNew")}</Link>
           </Button>
         </div>
       )}

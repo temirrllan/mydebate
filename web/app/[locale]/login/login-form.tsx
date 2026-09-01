@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function LoginForm({
   callbackUrl: string;
   infoMessage?: string;
 }) {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(loginUser, initialState);
   const [email, setEmail] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
@@ -31,8 +33,8 @@ export function LoginForm({
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <div>
-        <h1 className="text-3xl font-extrabold text-navy-900">Вход в аккаунт</h1>
-        <p className="mt-2 text-muted">Добро пожаловать! Войдите, чтобы продолжить</p>
+        <h1 className="text-3xl font-extrabold text-navy-900">{t("login.title")}</h1>
+        <p className="mt-2 text-muted">{t("login.subtitle")}</p>
       </div>
 
       {infoMessage && (
@@ -47,7 +49,7 @@ export function LoginForm({
         </p>
       )}
 
-      <GoogleButton label="Войти через Google" callbackUrl={callbackUrl} />
+      <GoogleButton label={t("login.google")} callbackUrl={callbackUrl} />
 
       <OrDivider />
 
@@ -55,7 +57,7 @@ export function LoginForm({
 
       <div>
         <label htmlFor="email" className="text-sm font-medium text-ink">
-          Email
+          {t("emailLabel")}
         </label>
         <div className="relative mt-1.5">
           <Mail
@@ -69,7 +71,7 @@ export function LoginForm({
             type="email"
             autoComplete="email"
             required
-            placeholder="Введите ваш email"
+            placeholder={t("emailPlaceholder")}
             className="pl-10"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -81,13 +83,13 @@ export function LoginForm({
         </div>
         <FieldError
           id="email-error"
-          messages={emailInvalid ? ["Введите корректный email"] : emailErrors}
+          messages={emailInvalid ? [t("emailInvalid")] : emailErrors}
         />
       </div>
 
       <div>
         <label htmlFor="password" className="text-sm font-medium text-ink">
-          Пароль
+          {t("passwordLabel")}
         </label>
         <div className="mt-1.5">
           <PasswordInput
@@ -95,7 +97,7 @@ export function LoginForm({
             name="password"
             autoComplete="current-password"
             required
-            placeholder="Введите ваш пароль"
+            placeholder={t("passwordPlaceholder")}
             invalid={Boolean(passwordErrors?.length)}
             aria-invalid={Boolean(passwordErrors?.length)}
             aria-describedby={passwordErrors?.length ? "password-error" : undefined}
@@ -112,21 +114,21 @@ export function LoginForm({
             defaultChecked
             className="h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500"
           />
-          Запомнить меня
+          {t("login.remember")}
         </label>
         <Link href="/forgot-password" className="font-medium text-brand-600 hover:text-brand-700">
-          Забыли пароль?
+          {t("login.forgot")}
         </Link>
       </div>
 
       <Button type="submit" size="lg" className="w-full justify-center" disabled={pending}>
-        {pending ? "Входим…" : "Войти"}
+        {pending ? t("login.pending") : t("login.submit")}
       </Button>
 
       <p className="text-center text-sm text-muted">
-        Нет аккаунта?{" "}
+        {t("login.noAccount")}{" "}
         <Link href="/register" className="font-medium text-brand-600 hover:text-brand-700">
-          Создать аккаунт
+          {t("login.createAccount")}
         </Link>
       </p>
     </form>

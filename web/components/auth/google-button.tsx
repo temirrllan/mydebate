@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "@/lib/actions/auth";
 
@@ -13,6 +14,7 @@ import { signInWithGoogle } from "@/lib/actions/auth";
  * «только внутренний путь» делает сам экшен).
  */
 export function GoogleButton({ label, callbackUrl }: { label: string; callbackUrl?: string }) {
+  const t = useTranslations("auth");
   const [pending, startTransition] = useTransition();
 
   return (
@@ -41,7 +43,7 @@ export function GoogleButton({ label, callbackUrl }: { label: string; callbackUr
           d="M12 4.75c1.76 0 3.35.61 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.59l4.02 3.1C6.23 6.86 8.88 4.75 12 4.75Z"
         />
       </svg>
-      {pending ? "Переходим в Google…" : label}
+      {pending ? t("googlePending") : label}
     </Button>
   );
 }

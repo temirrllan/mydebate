@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { getCurrentUser } from "@/lib/auth/session";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "Вход" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.login" });
+  return { title: t("metaTitle") };
+}
 
 // Next.js 16: searchParams — Promise, обязательно await (Async Request APIs).
 export default async function LoginPage({
@@ -25,18 +34,17 @@ export default async function LoginPage({
     redirect(callbackUrl);
   }
 
+  const t = await getTranslations("auth");
+
   let infoMessage: string | undefined;
   if (params.reset === "success") {
-    infoMessage = "Пароль успешно изменён. Войдите с новым паролем.";
+    infoMessage = t("login.afterReset");
   } else if (params.registered === "1") {
-    infoMessage = "Аккаунт создан. Войдите, используя ваш email и пароль.";
+    infoMessage = t("login.afterRegister");
   }
 
   return (
-    <AuthLayout
-      title="Войдите и откройте все возможности MyDebate"
-      subtitle="Находите турниры, сохраняйте события и управляйте участием в одном личном кабинете."
-    >
+    <AuthLayout title={t("sidebarTitle")} subtitle={t("sidebarSubtitle")}>
       <LoginForm callbackUrl={callbackUrl} infoMessage={infoMessage} />
     </AuthLayout>
   );

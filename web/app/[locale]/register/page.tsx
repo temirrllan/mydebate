@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { getCurrentUser } from "@/lib/auth/session";
 import { RegisterForm } from "./register-form";
 
-export const metadata: Metadata = { title: "Регистрация" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.register" });
+  return { title: t("metaTitle") };
+}
 
 // Next.js 16: searchParams — Promise, обязательно await (Async Request APIs).
 export default async function RegisterPage({
@@ -24,11 +33,10 @@ export default async function RegisterPage({
     redirect(callbackUrl);
   }
 
+  const t = await getTranslations("auth");
+
   return (
-    <AuthLayout
-      title="Почему участники выбирают MyDebate?"
-      subtitle="Присоединяйтесь к сообществу дебатёров и организаторов по всему Казахстану."
-    >
+    <AuthLayout title={t("sidebarRegisterTitle")} subtitle={t("sidebarRegisterSubtitle")}>
       <RegisterForm />
     </AuthLayout>
   );

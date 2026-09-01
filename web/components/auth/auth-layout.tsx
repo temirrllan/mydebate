@@ -1,30 +1,16 @@
+import { getTranslations } from "next-intl/server";
 import { Trophy, Bookmark, Bell, Users } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+// Иконки и порядок — здесь, тексты — в словаре (namespace "auth.benefits").
 const BENEFITS = [
-  {
-    icon: Trophy,
-    title: "Участие в турнирах",
-    text: "Находите и регистрируйтесь на дебатные турниры и MUN конференции.",
-  },
-  {
-    icon: Bookmark,
-    title: "Сохранение событий",
-    text: "Сохраняйте интересующие вас турниры и следите за дедлайнами.",
-  },
-  {
-    icon: Bell,
-    title: "Личный кабинет",
-    text: "Управляйте своими заявками и отслеживайте статус участия.",
-  },
-  {
-    icon: Users,
-    title: "Профиль участника",
-    text: "Создайте профиль и станьте частью дебатного сообщества.",
-  },
-];
+  { icon: Trophy, key: "tournaments" },
+  { icon: Bookmark, key: "saved" },
+  { icon: Bell, key: "cabinet" },
+  { icon: Users, key: "profile" },
+] as const;
 
 /**
  * Двухколоночный layout для страниц аутентификации (по макетам
@@ -32,7 +18,7 @@ const BENEFITS = [
  * заголовок + список преимуществ + иллюстрация-заглушка. На мобиле —
  * одна колонка (правая часть скрыта).
  */
-export function AuthLayout({
+export async function AuthLayout({
   title,
   subtitle,
   children,
@@ -43,6 +29,8 @@ export function AuthLayout({
   children: React.ReactNode;
   className?: string;
 }) {
+  const t = await getTranslations("auth.benefits");
+
   return (
     <section className="bg-canvas py-10 sm:py-16">
       <Container>
@@ -54,14 +42,14 @@ export function AuthLayout({
             <p className="mt-2 text-muted">{subtitle}</p>
 
             <ul className="mt-10 space-y-7">
-              {BENEFITS.map(({ icon: Icon, title: t, text }) => (
-                <li key={t} className="flex gap-4">
+              {BENEFITS.map(({ icon: Icon, key }) => (
+                <li key={key} className="flex gap-4">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
                     <Icon size={22} />
                   </span>
                   <div>
-                    <p className="font-semibold text-ink">{t}</p>
-                    <p className="mt-1 text-sm text-muted">{text}</p>
+                    <p className="font-semibold text-ink">{t(`${key}Title`)}</p>
+                    <p className="mt-1 text-sm text-muted">{t(`${key}Text`)}</p>
                   </div>
                 </li>
               ))}

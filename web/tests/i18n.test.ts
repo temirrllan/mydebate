@@ -86,6 +86,7 @@ describe("словари переводов", () => {
         "enums.level.ADVANCED",
         "enums.locationType.ONLINE", // «Онлайн» / «Офлайн» — те же слова
         "enums.locationType.OFFLINE",
+        "auth.emailLabel", // «Email» — так и пишется на всех трёх языках
       ];
 
       const untranslated = ruKeys.filter(
