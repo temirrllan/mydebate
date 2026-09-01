@@ -1,30 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 import { Menu, X, LogOut, ShieldCheck, Bell } from "lucide-react";
-// Link и usePathname — из i18n/navigation, а не из next/*: обычный <Link>
-// потерял бы префикс локали и увёл бы казахоязычного пользователя на русскую
-// версию страницы.
-import { Link, usePathname } from "@/i18n/navigation";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
-import { LocaleSwitcher } from "./locale-switcher";
 import { Logo } from "./logo";
 import { cn } from "@/lib/utils";
 import { logoutUser } from "@/lib/actions/auth";
 import { Role } from "@/lib/enums";
 import type { CurrentUser } from "@/lib/auth/session";
 
-// Подписи берутся из словаря по ключу — сам список остаётся структурой,
-// а не текстом (иначе он был бы третьим местом, где живут переводы).
 const NAV = [
-  { href: "/", key: "home" },
-  { href: "/tournaments", key: "tournaments" },
-  { href: "/about", key: "about" },
-  { href: "/contacts", key: "contacts" },
-] as const;
+  { href: "/", label: "Главная" },
+  { href: "/tournaments", label: "Турниры" },
+  { href: "/about", label: "О нас" },
+  { href: "/contacts", label: "Контакты" },
+];
 
 // Пользователь передаётся из app/layout.tsx (Server Component, await
 // getCurrentUser()) — навбар сам не обращается к сессии, только рендерит
@@ -37,8 +31,8 @@ type NavbarProps = {
 
 /** Колокольчик уведомлений со счётчиком непрочитанных (ведёт в кабинет). */
 function NotificationBell({ count, onClick }: { count: number; onClick?: () => void }) {
-  const t = useTranslations("nav");
-  const label = count > 0 ? t("notificationsWithCount", { count }) : t("notifications");
+  const label =
+    count > 0 ? `Уведомления: ${count} непрочитанных` : "Уведомления";
   return (
     <Link
       href="/profile?tab=notifications"
@@ -82,7 +76,6 @@ function Avatar({ user }: { user: CurrentUser }) {
 const MOBILE_MENU_ID = "mobile-nav-menu";
 
 export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
-  const t = useTranslations("nav");
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const burgerRef = useRef<HTMLButtonElement>(null);
@@ -125,16 +118,15 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
                   : "text-slate-600 hover:text-ink",
               )}
             >
-              {t(item.key)}
+              {item.label}
             </Link>
           ))}
         </nav>
 
         {/* Действия (десктоп) */}
         <div className="hidden items-center gap-2 lg:flex">
-          <LocaleSwitcher className="mr-1" />
           <Button asChild variant="outline" size="sm">
-            <Link href="/tournaments/create">{t("createTournament")}</Link>
+            <Link href="/tournaments/create">Создать турнир</Link>
           </Button>
 
           {user ? (
@@ -143,7 +135,7 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/admin">
                     <ShieldCheck size={16} />
-                    {t("admin")}
+                    Админ-панель
                   </Link>
                 </Button>
               )}
@@ -157,17 +149,17 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
               <form action={logoutUser}>
                 <Button type="submit" variant="outline" size="sm">
                   <LogOut size={16} />
-                  {t("logout")}
+                  Выйти
                 </Button>
               </form>
             </>
           ) : (
             <>
               <Button asChild variant="ghost" size="sm">
-                <Link href="/login">{t("login")}</Link>
+                <Link href="/login">Войти</Link>
               </Button>
               <Button asChild size="sm">
-                <Link href="/register">{t("register")}</Link>
+                <Link href="/register">Регистрация</Link>
               </Button>
             </>
           )}
@@ -178,7 +170,7 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
           ref={burgerRef}
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink lg:hidden"
           onClick={() => setOpen((v) => !v)}
-          aria-label={t("menu")}
+          aria-label="Меню"
           aria-expanded={open}
           aria-controls={MOBILE_MENU_ID}
         >
@@ -189,7 +181,7 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
       {/* Мобильное меню */}
       {open && (
         <div id={MOBILE_MENU_ID} className="border-t border-line bg-white lg:hidden">
-          <nav aria-label={t("mobileMenu")}>
+          <nav aria-label="Мобильное меню">
           <Container className="flex flex-col gap-1 py-4">
             {NAV.map((item) => (
               <Link
@@ -204,14 +196,13 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
                     : "text-slate-600 hover:bg-canvas",
                 )}
               >
-                {t(item.key)}
+                {item.label}
               </Link>
             ))}
             <div className="mt-3 flex flex-col gap-2">
-              <LocaleSwitcher className="mb-1 justify-center" />
               <Button asChild variant="outline">
                 <Link href="/tournaments/create" onClick={closeMenu}>
-                  {t("createTournament")}
+                  Создать турнир
                 </Link>
               </Button>
 
@@ -221,14 +212,14 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
                     <Button asChild variant="ghost">
                       <Link href="/admin" onClick={closeMenu}>
                         <ShieldCheck size={16} />
-                        {t("admin")}
+                        Админ-панель
                       </Link>
                     </Button>
                   )}
                   <Button asChild variant="ghost">
                     <Link href="/profile?tab=notifications" onClick={closeMenu}>
                       <Bell size={16} />
-                      {t("notifications")}
+                      Уведомления
                       {unreadNotifications > 0 && (
                         <span className="ml-auto flex min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
                           {unreadNotifications > 9 ? "9+" : unreadNotifications}
@@ -245,7 +236,7 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
                   <form action={logoutUser}>
                     <Button type="submit" variant="outline" className="w-full">
                       <LogOut size={16} />
-                      {t("logout")}
+                      Выйти
                     </Button>
                   </form>
                 </>
@@ -253,12 +244,12 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
                 <>
                   <Button asChild variant="ghost">
                     <Link href="/login" onClick={closeMenu}>
-                      {t("login")}
+                      Войти
                     </Link>
                   </Button>
                   <Button asChild>
                     <Link href="/register" onClick={closeMenu}>
-                      {t("register")}
+                      Регистрация
                     </Link>
                   </Button>
                 </>

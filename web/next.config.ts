@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import createNextIntlPlugin from "next-intl/plugin";
 
 // Заголовки безопасности на все ответы. Консервативный набор, который НЕ
 // ломает работу приложения:
@@ -55,8 +54,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Плагин next-intl подключает i18n/request.ts к сборке: без него серверные
-// хелперы переводов (getTranslations и т.п.) не знают, где брать словари.
-const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
-
-export default withNextIntl(nextConfig);
+export default nextConfig;

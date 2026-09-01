@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 
 import { absoluteUrl } from "@/lib/site";
-import { LOCALES, routing } from "@/i18n/routing";
 
 /**
  * robots.txt — первое, что спрашивает поисковый робот, придя на сайт.
@@ -21,38 +20,27 @@ import { LOCALES, routing } from "@/i18n/routing";
  * поэтому в готовом образе ссылка на карту сайта указывала бы на localhost.
  */
 export const dynamic = "force-dynamic";
-
-/** Закрытые от индексации разделы — пути БЕЗ префикса локали. */
-const PRIVATE_PATHS = [
-  "/admin",
-  "/profile",
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/403",
-  // Действия внутри турнира требуют входа — роботу там делать нечего.
-  "/tournaments/create",
-  "/tournaments/*/register",
-  "/tournaments/*/edit",
-  "/tournaments/*/participants",
-];
-
 export default function robots(): MetadataRoute.Robots {
-  // Каждый закрытый раздел существует на трёх языках, и запрет надо повторить
-  // для каждого адреса: правило "/profile" не закрывает "/kk/profile", и
-  // казахская версия личного кабинета уехала бы в индекс.
-  const disallow = [
-    "/api/",
-    ...LOCALES.flatMap((locale) =>
-      PRIVATE_PATHS.map((path) =>
-        locale === routing.defaultLocale ? path : `/${locale}${path}`,
-      ),
-    ),
-  ];
-
   return {
-    rules: { userAgent: "*", allow: "/", disallow },
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: [
+        "/admin",
+        "/profile",
+        "/api/",
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/403",
+        // Действия внутри турнира требуют входа — роботу там делать нечего.
+        "/tournaments/create",
+        "/tournaments/*/register",
+        "/tournaments/*/edit",
+        "/tournaments/*/participants",
+      ],
+    },
     sitemap: absoluteUrl("/sitemap.xml"),
   };
 }

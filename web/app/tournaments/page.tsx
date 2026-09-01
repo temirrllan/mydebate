@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
 import { SearchX, Trophy } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
@@ -10,20 +9,12 @@ import { Pagination } from "@/components/ui/pagination";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
 import { FavoriteButton } from "@/components/tournaments/favorite-button";
 import { FiltersBar } from "@/components/tournaments/filters-bar";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { listTournaments, getAvailableCities, type TournamentSort } from "@/lib/tournaments/queries";
 import { getFavoriteTournamentIds } from "@/lib/actions/favorites";
 import { getCurrentUser } from "@/lib/auth/session";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "catalog" });
-  return { title: t("title"), description: t("subtitle") };
-}
+export const metadata: Metadata = { title: "Все турниры" };
 
 type TournamentsSearchParams = {
   search?: string;
@@ -36,17 +27,20 @@ type TournamentsSearchParams = {
   page?: string;
 };
 
+/** «5 турниров» / «2 турнира» / «1 турнир» — русская плюрализация. */
+function pluralizeTournament(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "турнир";
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "турнира";
+  return "турниров";
+}
+
 export default async function TournamentsPage({
   searchParams,
 }: {
   searchParams: Promise<TournamentsSearchParams>;
 }) {
-  // Склонение «турнир / турнира / турниров» больше не считается вручную: это
-  // делает ICU-плюрал в словаре (catalog.found). У казахского и английского
-  // формы другие, и три параллельные функции разошлись бы при первой правке.
-  const t = await getTranslations("catalog");
-  const tNav = await getTranslations("nav");
-
   const params = await searchParams;
   const page = Number(params.page) > 0 ? Number(params.page) : 1;
   const sort: TournamentSort = params.sort === "newest" ? "newest" : "nearest";
@@ -98,14 +92,12 @@ export default async function TournamentsPage({
 
   return (
     <Container className="py-10 sm:py-14">
-      <Breadcrumbs
-        items={[{ label: tNav("home"), href: "/" }, { label: tNav("tournaments") }]}
-      />
+      <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Турниры" }]} />
 
       <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">
-        {t("title")}
+        Все турниры
       </h1>
-      <p className="mt-2 text-muted">{t("subtitle")}</p>
+      <p className="mt-2 text-muted">Найди дебатные и MUN события по всему Казахстану</p>
 
       <div className="mt-8">
         <FiltersBar cities={cities} />
@@ -115,21 +107,23 @@ export default async function TournamentsPage({
         <EmptyState
           className="mt-8"
           icon={SearchX}
-          title={t("loadErrorTitle")}
-          description={t("loadErrorDescription")}
+          title="Не удалось загрузить данные."
+          description="Попробуйте обновить страницу немного позже."
         />
       ) : (
         <>
           <p role="status" aria-live="polite" className="mt-6 text-sm text-muted">
-            {result.total > 0 ? t("found", { count: result.total }) : t("nothingFound")}
+            {result.total > 0
+              ? `Найдено ${result.total} ${pluralizeTournament(result.total)}`
+              : "Ничего не найдено"}
           </p>
 
           <div className="mt-5">
             {result.items.length === 0 ? (
               <EmptyState
                 icon={SearchX}
-                title={t("nothingFound")}
-                description={t("nothingFoundDescription")}
+                title="Ничего не найдено"
+                description="Попробуйте изменить параметры поиска или сбросить фильтры."
               />
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -169,11 +163,11 @@ export default async function TournamentsPage({
       <div className="mt-16">
         <CtaBanner
           icon={Trophy}
-          title={t("ctaTitle")}
-          description={t("ctaDescription")}
+          title="Не нашли подходящий турнир?"
+          description="Создайте свой турнир и соберите лучших участников!"
         >
           <Button asChild size="lg" variant="secondary" className="bg-white text-navy-900 hover:bg-brand-50">
-            <Link href="/tournaments/create">{t("ctaButton")}</Link>
+            <Link href="/tournaments/create">Создать турнир</Link>
           </Button>
           <Button
             asChild

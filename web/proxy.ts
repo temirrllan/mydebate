@@ -11,31 +11,8 @@
 // lib/auth/session.ts::getCurrentUser(), используемой в Server
 // Components/Actions). Proxy — первая линия защиты, не единственная.
 import { NextResponse } from "next/server";
-import createIntlMiddleware from "next-intl/middleware";
 
 import { auth } from "@/auth";
-import { LOCALES, routing, type Locale } from "@/i18n/routing";
-import { localePath } from "@/lib/i18n/alternates";
-
-// Локаль определяется ДО ролевых проверок: адреса теперь бывают вида
-// "/kk/tournaments/create", и без снятия префикса ни один список ниже не
-// совпал бы — казахская версия каталога проскочила бы мимо всех гейтов.
-const handleI18n = createIntlMiddleware(routing);
-
-/**
- * Разбирает путь на локаль и «чистый» путь без её префикса. У языка по
- * умолчанию (русского) префикса нет — см. localePrefix: "as-needed".
- */
-function splitLocale(pathname: string): { locale: Locale; path: string } {
-  const [, maybeLocale, ...rest] = pathname.split("/");
-
-  if ((LOCALES as readonly string[]).includes(maybeLocale)) {
-    const path = `/${rest.join("/")}`.replace(/\/$/, "");
-    return { locale: maybeLocale as Locale, path: path || "/" };
-  }
-
-  return { locale: routing.defaultLocale, path: pathname };
-}
 
 // Публичные маршруты — доступны гостю без авторизации (spec §3: "View
 // landing" ✅ для Guest, плюс статические информационные страницы).
@@ -85,23 +62,13 @@ function matchesPrefix(pathname: string, prefixes: string[]) {
 }
 
 export default auth((req) => {
-  const { search } = req.nextUrl;
+  const { pathname, search } = req.nextUrl;
   const session = req.auth;
-
-  // Ответ next-intl: либо rewrite на внутренний маршрут /[locale]/..., либо
-  // редирект. Возвращаем именно его везде, где доступ разрешён, — подменив
-  // его на NextResponse.next(), мы бы потеряли разбор локали, и страница
-  // отрендерилась бы без словаря.
-  const intlResponse = handleI18n(req);
-
-  // Дальше работаем с путём БЕЗ префикса локали: правила доступа одинаковы
-  // для всех языков, дублировать их на каждую локаль незачем.
-  const { locale, path: pathname } = splitLocale(req.nextUrl.pathname);
 
   // Публичные страницы и всё, что не попадает под явно защищённые префиксы
   // ниже, пропускаем без ограничений.
   if (PUBLIC_PATHS.includes(pathname)) {
-    return intlResponse;
+    return NextResponse.next();
   }
 
   const isAdminRoute = matchesPrefix(pathname, ADMIN_ONLY_PREFIXES);
@@ -110,18 +77,14 @@ export default auth((req) => {
     TOURNAMENT_ACTION_PATTERNS.some((pattern) => pattern.test(pathname));
 
   if (!isAdminRoute && !isAuthRequiredRoute) {
-    return intlResponse;
+    return NextResponse.next();
   }
 
   // Гость -> редирект на /login с callbackUrl (spec: "гость → redirect
   // /login?callbackUrl=...").
-  //
-  // И страница входа, и адрес возврата берутся в ТЕКУЩЕЙ локали: иначе
-  // казахоязычный пользователь с /kk/profile попадал бы на русский /login и
-  // после входа возвращался на русскую версию страницы.
   if (!session?.user) {
-    const loginUrl = new URL(localePath(locale, "/login"), req.nextUrl);
-    loginUrl.searchParams.set("callbackUrl", `${localePath(locale, pathname)}${search}`);
+    const loginUrl = new URL("/login", req.nextUrl);
+    loginUrl.searchParams.set("callbackUrl", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -135,26 +98,11 @@ export default auth((req) => {
   // никуда не делась, просто выполняется там, где данные актуальны. Заодно
   // это чинит и обратный случай: у снятого админа JWT ещё говорит ADMIN, и
   // пропускала его как раз проверка здесь.
-  return intlResponse;
+  return NextResponse.next();
 });
 
 export const config = {
-  // Не запускаем proxy на статике и служебных маршрутах.
-  //
-  // Список исключений стал шире после подключения локалей, и это не
-  // косметика: next-intl переписывает КАЖДЫЙ путь, который до него дошёл, в
-  // /[locale]/..., поэтому /sitemap.xml превращался в /ru/sitemap.xml и
-  // отдавал 404 — карта сайта пропала бы у поисковика молча.
-  //
-  // Что исключаем и почему:
-  //   api/**            — роуты NextAuth и загрузки файлов; локали им не
-  //                       нужны, а свои проверки прав у них внутри;
-  //   uploads/**        — отдача обложек и чеков (тоже route handlers);
-  //   robots.txt,
-  //   sitemap.xml       — служебные файлы для поисковика, существуют в
-  //                       единственном экземпляре и локализации не подлежат;
-  //   _next/**, *.png…  — статика.
-  matcher: [
-    "/((?!api|uploads|_next/static|_next/image|robots\\.txt|sitemap\\.xml|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
-  ],
+  // Не запускаем proxy на статике/служебных запросах и на самих роутах
+  // NextAuth (/api/auth/*) — они должны быть доступны без ролевых проверок.
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

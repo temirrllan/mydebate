@@ -1,12 +1,11 @@
 import Image from "next/image";
-import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 import { MapPin, Calendar, ArrowRight } from "lucide-react";
-import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CoverPlaceholder } from "@/components/tournaments/cover-placeholder";
-import { FORMAT_LABEL, LEVEL_LABEL, formatDate, isRegistrationOpen } from "@/lib/format";
+import { FORMAT_LABEL, LEVEL_LABEL, formatDateRu, isRegistrationOpen } from "@/lib/format";
 
 export type TournamentCardData = {
   id: string;
@@ -48,9 +47,6 @@ export function TournamentCard({
   tournament: TournamentCardData;
   favoriteSlot?: React.ReactNode;
 }) {
-  const t = useTranslations("tournamentCard");
-  const locale = useLocale();
-  const tCommon = useTranslations("common");
   const open = isRegistrationOpen(tournament.registrationDeadline);
 
   return (
@@ -68,7 +64,7 @@ export function TournamentCard({
           <CoverPlaceholder seed={tournament.id} title={tournament.title} />
         )}
         <Badge tone={open ? "green" : "gray"} className="absolute left-3 top-3">
-          {open ? t("registrationOpen") : t("registrationClosed")}
+          {open ? "Регистрация открыта" : "Регистрация завершена"}
         </Badge>
         {favoriteSlot && <div className="absolute right-3 top-3 z-10">{favoriteSlot}</div>}
       </div>
@@ -86,11 +82,11 @@ export function TournamentCard({
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
           <span className="inline-flex items-center gap-1.5">
             <MapPin size={15} className="shrink-0 text-brand-600" />
-            {tournament.city ?? tCommon("online")}
+            {tournament.city ?? "Онлайн"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Calendar size={15} className="shrink-0 text-brand-600" />
-            {formatDate(tournament.startDate, locale)}
+            {formatDateRu(tournament.startDate)}
           </span>
         </div>
 
@@ -106,7 +102,7 @@ export function TournamentCard({
         <div className="mt-auto pt-5">
           <Button asChild variant="outline" size="sm" className="relative">
             <Link href={`/tournaments/${tournament.id}`} tabIndex={-1} aria-hidden="true">
-              {t("details")} <ArrowRight size={16} />
+              Подробнее <ArrowRight size={16} />
             </Link>
           </Button>
         </div>

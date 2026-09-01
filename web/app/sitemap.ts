@@ -3,8 +3,6 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { TournamentStatus } from "@/lib/enums";
 import { absoluteUrl } from "@/lib/site";
-import { LOCALES, routing } from "@/i18n/routing";
-import { localePath } from "@/lib/i18n/alternates";
 
 /**
  * Карта сайта — список страниц, которые поисковику стоит обойти. Без неё он
@@ -14,11 +12,6 @@ import { localePath } from "@/lib/i18n/alternates";
  * Отдаётся по адресу /sitemap.xml, пересобирается на каждый запрос: турниры
  * появляются и уходят с модерации постоянно, а запрос дешёвый (id и дата, без
  * тяжёлых полей).
- *
- * Каждая страница перечислена один раз (в основной, русской версии) со
- * списком alternates на казахскую и английскую. Так делать правильнее, чем
- * тремя отдельными записями: поисковик получает связку «это один документ на
- * трёх языках» прямо из карты сайта, а не только из hreflang в разметке.
  */
 export const dynamic = "force-dynamic";
 
@@ -53,30 +46,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] Не удалось получить список турниров:", error);
   }
 
-  /** Адреса страницы на всех языках — для блока <xhtml:link rel="alternate">. */
-  function languages(path: string): Record<string, string> {
-    return Object.fromEntries(
-      LOCALES.map((locale) => [locale, absoluteUrl(localePath(locale, path))]),
-    );
-  }
-
   return [
     ...STATIC_PAGES.map((page) => ({
-      url: absoluteUrl(localePath(routing.defaultLocale, page.path)),
+      url: absoluteUrl(page.path),
       lastModified: now,
       changeFrequency: page.changeFrequency,
       priority: page.priority,
-      alternates: { languages: languages(page.path) },
     })),
-    ...tournaments.map((tournament) => {
-      const path = `/tournaments/${tournament.id}`;
-      return {
-        url: absoluteUrl(localePath(routing.defaultLocale, path)),
-        lastModified: tournament.updatedAt,
-        changeFrequency: "weekly" as const,
-        priority: 0.8,
-        alternates: { languages: languages(path) },
-      };
-    }),
+    ...tournaments.map((tournament) => ({
+      url: absoluteUrl(`/tournaments/${tournament.id}`),
+      lastModified: tournament.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
   ];
 }

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import {
   ArrowRight,
   Plus,
@@ -13,7 +13,6 @@ import {
   Trophy,
   CalendarSearch,
 } from "lucide-react";
-import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,25 +25,45 @@ import { prisma } from "@/lib/prisma";
 import { TournamentStatus } from "@/lib/enums";
 import { startOfToday } from "@/lib/format";
 
-// Иконки и порядок — здесь, тексты — в словаре (messages/*.json,
-// namespace "home"). Так список остаётся структурой, а перевод живёт в одном
-// месте на все три языка.
 const ADVANTAGES = [
-  { icon: Globe, key: "access" },
-  { icon: Calendar, key: "fresh" },
-  { icon: Search, key: "search" },
-  { icon: Rocket, key: "fast" },
-] as const;
+  {
+    icon: Globe,
+    title: "Централизованный доступ к турнирам",
+    description: "Все актуальные события собраны в одном месте.",
+  },
+  {
+    icon: Calendar,
+    title: "Актуальность информации",
+    description: "Платформа отображает только действующие и проверенные мероприятия.",
+  },
+  {
+    icon: Search,
+    title: "Удобная система поиска",
+    description: "Фильтрация по городу, формату и дате проведения.",
+  },
+  {
+    icon: Rocket,
+    title: "Быстрый доступ к регистрации",
+    description: "Переход к участию в несколько кликов.",
+  },
+];
 
 const STEPS = [
-  { icon: Search, key: "choose" },
-  { icon: FileText, key: "read" },
-  { icon: UserPlus, key: "apply" },
-] as const;
+  {
+    icon: Search,
+    title: "Выберите подходящий турнир или конференцию",
+  },
+  {
+    icon: FileText,
+    title: "Ознакомьтесь с деталями мероприятия",
+  },
+  {
+    icon: UserPlus,
+    title: "Перейдите к регистрации и подайте заявку",
+  },
+];
 
 export default async function Home() {
-  const t = await getTranslations("home");
-
   // Только опубликованные турниры, ближайшие по дате начала (spec: гости
   // видят лендинг, но каталог турниров и деталь турнира auth-gated — эти три
   // карточки на главной остаются публичными "витринными" данными).
@@ -83,22 +102,25 @@ export default async function Home() {
         <Container className="grid gap-12 py-16 lg:grid-cols-2 lg:items-center lg:py-24">
           <div>
             <Badge tone="blue" className="mb-5">
-              {t("badge")}
+              #1 Платформа дебатов и MUN в Казахстане
             </Badge>
             <h1 className="max-w-xl text-4xl font-extrabold leading-tight tracking-tight text-navy-900 sm:text-5xl">
-              {t("heroTitle")}{" "}
-              <span className="text-brand-600">{t("heroTitleAccent")}</span>
+              Найди дебатные турниры и MUN{" "}
+              <span className="text-brand-600">конференции</span>
             </h1>
-            <p className="mt-5 max-w-lg text-lg text-muted">{t("heroSubtitle")}</p>
+            <p className="mt-5 max-w-lg text-lg text-muted">
+              Все актуальные события на одной платформе — быстро найди и
+              зарегистрируйся.
+            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link href="/tournaments">
-                  {t("viewTournaments")} <ArrowRight size={18} />
+                  Смотреть турниры <ArrowRight size={18} />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
                 <Link href="/tournaments/create">
-                  {t("postTournament")} <Plus size={18} />
+                  Разместить турнир <Plus size={18} />
                 </Link>
               </Button>
             </div>
@@ -113,13 +135,13 @@ export default async function Home() {
         <Container className="py-16 lg:py-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold text-navy-900 sm:text-3xl">
-              {t("upcomingTitle")}
+              Ближайшие турниры
             </h2>
             <Link
               href="/tournaments"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
             >
-              {t("viewAll")} <ArrowRight size={16} />
+              Смотреть все турниры <ArrowRight size={16} />
             </Link>
           </div>
 
@@ -127,8 +149,8 @@ export default async function Home() {
             <EmptyState
               className="mt-8"
               icon={CalendarSearch}
-              title={t("emptyTitle")}
-              description={t("emptyDescription")}
+              title="Пока нет опубликованных турниров."
+              description="Загляните позже — новые турниры и конференции появляются регулярно."
             />
           ) : (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -149,7 +171,7 @@ export default async function Home() {
           <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] bg-brand-100/70 order-2 lg:order-1">
             <Image
               src="/about-debate.jpg"
-              alt={t("aboutImageAlt")}
+              alt="Участники дебатного турнира: спикер выступает за трибуной перед панелью судей"
               fill
               sizes="(min-width: 1024px) 50vw, 100vw"
               className="object-cover"
@@ -158,12 +180,23 @@ export default async function Home() {
 
           <div className="order-1 lg:order-2">
             <h2 className="text-2xl font-bold text-navy-900 sm:text-3xl">
-              {t("aboutTitle")}
+              О платформе MyDebate
             </h2>
             <div className="mt-5 space-y-4 text-muted">
-              <p>{t("aboutP1")}</p>
-              <p>{t("aboutP2")}</p>
-              <p>{t("aboutP3")}</p>
+              <p>
+                MyDebate — это централизованная платформа, созданная для
+                участников дебатного движения и Model United Nations.
+              </p>
+              <p>
+                Сервис решает проблему разрозненности информации, объединяя
+                турниры, конференции и образовательные мероприятия в одном
+                месте.
+              </p>
+              <p>
+                Пользователи получают возможность быстро находить подходящие
+                события, сравнивать их и принимать решение об участии без
+                необходимости поиска в чатах и социальных сетях.
+              </p>
             </div>
           </div>
         </Container>
@@ -173,16 +206,11 @@ export default async function Home() {
       <section className="bg-white">
         <Container className="py-16 lg:py-20">
           <h2 className="text-center text-2xl font-bold text-navy-900 sm:text-3xl">
-            {t("advantagesTitle")}
+            Преимущества платформы
           </h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {ADVANTAGES.map((item) => (
-              <FeatureCard
-                key={item.key}
-                icon={item.icon}
-                title={t(`advantages.${item.key}Title`)}
-                description={t(`advantages.${item.key}Description`)}
-              />
+              <FeatureCard key={item.title} {...item} />
             ))}
           </div>
         </Container>
@@ -192,11 +220,11 @@ export default async function Home() {
       <section className="border-t border-line bg-canvas">
         <Container className="py-16 lg:py-20">
           <h2 className="text-center text-2xl font-bold text-navy-900 sm:text-3xl">
-            {t("howItWorksTitle")}
+            Как работает платформа
           </h2>
           <div className="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-4">
             {STEPS.map((step, i) => (
-              <div key={step.key} className="relative flex flex-col items-center text-center">
+              <div key={step.title} className="relative flex flex-col items-center text-center">
                 {i < STEPS.length - 1 && (
                   <div
                     className="absolute left-1/2 top-6 hidden h-px w-full border-t border-dashed border-brand-300 sm:block"
@@ -212,7 +240,7 @@ export default async function Home() {
                   </span>
                 </div>
                 <p className="relative mt-4 max-w-[15rem] font-medium text-ink">
-                  {t(`steps.${step.key}`)}
+                  {step.title}
                 </p>
               </div>
             ))}
@@ -225,12 +253,12 @@ export default async function Home() {
         <Container className="py-16 lg:py-20">
           <CtaBanner
             icon={Trophy}
-            title={t("ctaTitle")}
-            description={t("ctaDescription")}
+            title="Начните поиск турнира уже сейчас"
+            description="Присоединяйтесь к дебатному сообществу и развивайте свои навыки!"
           >
             <Button asChild size="lg" variant="secondary" className="bg-white text-navy-900 hover:bg-brand-50">
               <Link href="/tournaments">
-                {t("viewTournaments")} <ArrowRight size={18} />
+                Смотреть турниры <ArrowRight size={18} />
               </Link>
             </Button>
           </CtaBanner>
