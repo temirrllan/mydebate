@@ -17,6 +17,44 @@ import {
 // Тестовый пароль для всех демо-пользователей (см. отчёт агента).
 const DEMO_PASSWORD = "password123";
 
+// ---------------------------------------------------------------------------
+// Даты демо-данных
+//
+// Задаются СМЕЩЕНИЕМ ОТ СЕГОДНЯ, а не абсолютными значениями. Раньше здесь
+// стояли конкретные даты («сегодня = 2026-07-05»), и через пару месяцев после
+// написания сида все «предстоящие» турниры оказывались в прошлом: каталог
+// пустел, а демо переставало показывать то, ради чего существует. Со
+// смещениями сид остаётся правдивым в любой день, когда его запустят.
+//
+// Точка отсчёта — полночь по UTC, как у startOfToday() в lib/format.ts:
+// каталог сравнивает даты турниров именно с ней.
+// ---------------------------------------------------------------------------
+
+function todayUTC(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+/** Дата на N дней вперёд (отрицательное — назад) от сегодня, в указанный час UTC. */
+function daysFromToday(days: number, hour = 9): Date {
+  const d = todayUTC();
+  d.setUTCDate(d.getUTCDate() + days);
+  d.setUTCHours(hour, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Дедлайн регистрации — конец суток на N дней от сегодня. Именно так его
+ * трактует isRegistrationOpen (lib/format.ts): весь день дедлайна регистрация
+ * ещё открыта, и турнир ещё в каталоге.
+ */
+function deadlineIn(days: number): Date {
+  const d = todayUTC();
+  d.setUTCDate(d.getUTCDate() + days);
+  d.setUTCHours(23, 59, 59, 0);
+  return d;
+}
+
 async function main() {
   console.log("Очистка данных...");
   // Порядок важен из-за внешних ключей: дети раньше родителей.
@@ -80,7 +118,7 @@ async function main() {
 
   console.log("Создание турниров...");
 
-  // --- Предстоящие, регистрация открыта (today = 2026-07-05) ---
+  // --- Предстоящие, регистрация открыта: их и показывает каталог ---
 
   const astanaDebateCup = await prisma.tournament.create({
     data: {
@@ -91,9 +129,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.INTERMEDIATE,
       languages: "Русский,English",
-      startDate: new Date("2026-08-15T09:00:00Z"),
-      endDate: new Date("2026-08-16T18:00:00Z"),
-      registrationDeadline: new Date("2026-08-01T23:59:59Z"),
+      startDate: daysFromToday(40),
+      endDate: daysFromToday(41, 18),
+      registrationDeadline: deadlineIn(26),
       price: 5000,
       city: "Астана",
       address: "пр. Мангилик Ел, 55",
@@ -112,9 +150,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.ADVANCED,
       languages: "Русский,English,Қазақша",
-      startDate: new Date("2026-09-10T09:00:00Z"),
-      endDate: new Date("2026-09-12T18:00:00Z"),
-      registrationDeadline: new Date("2026-08-25T23:59:59Z"),
+      startDate: daysFromToday(65),
+      endDate: daysFromToday(67, 18),
+      registrationDeadline: deadlineIn(50),
       price: 8000,
       city: "Астана",
       address: "ул. Кабанбай батыра, 53",
@@ -142,9 +180,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.BEGINNER,
       languages: "Русский",
-      startDate: new Date("2026-07-20T09:00:00Z"),
-      endDate: new Date("2026-07-20T19:00:00Z"),
-      registrationDeadline: new Date("2026-07-15T23:59:59Z"),
+      startDate: daysFromToday(15),
+      endDate: daysFromToday(15, 19),
+      registrationDeadline: deadlineIn(10),
       price: 0,
       city: "Алматы",
       address: "ул. Толе би, 100",
@@ -162,9 +200,9 @@ async function main() {
       locationType: LocationType.ONLINE,
       level: Level.BEGINNER,
       languages: "Русский,English",
-      startDate: new Date("2026-07-25T09:00:00Z"),
-      endDate: new Date("2026-07-25T18:00:00Z"),
-      registrationDeadline: new Date("2026-07-20T23:59:59Z"),
+      startDate: daysFromToday(20),
+      endDate: daysFromToday(20, 18),
+      registrationDeadline: deadlineIn(15),
       price: 0,
       status: TournamentStatus.PUBLISHED,
       organizerId: organizer.id,
@@ -179,9 +217,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.ADVANCED,
       languages: "Русский,English",
-      startDate: new Date("2026-10-05T09:00:00Z"),
-      endDate: new Date("2026-10-07T18:00:00Z"),
-      registrationDeadline: new Date("2026-09-20T23:59:59Z"),
+      startDate: daysFromToday(90),
+      endDate: daysFromToday(92, 18),
+      registrationDeadline: deadlineIn(75),
       price: 10000,
       city: "Алматы",
       address: "пр. Аль-Фараби, 71",
@@ -191,7 +229,12 @@ async function main() {
     },
   });
 
-  // --- Дедлайн регистрации прошёл, но турнир ещё впереди ---
+  // --- Дедлайн прошёл, но турнир ещё впереди ---
+  //
+  // Каталог такие турниры НЕ показывает (см. buildWhere в
+  // lib/tournaments/queries.ts): подать заявку уже нельзя. Оставлены в сиде
+  // намеренно — на них проверяется и само правило скрытия, и то, что у
+  // организатора турнир при этом никуда не делся.
 
   await prisma.tournament.create({
     data: {
@@ -201,9 +244,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.BEGINNER,
       languages: "Русский",
-      startDate: new Date("2026-07-18T09:00:00Z"),
-      endDate: new Date("2026-07-18T17:00:00Z"),
-      registrationDeadline: new Date("2026-07-01T23:59:59Z"),
+      startDate: daysFromToday(13),
+      endDate: daysFromToday(13, 17),
+      registrationDeadline: deadlineIn(-4),
       price: 2000,
       city: "Астана",
       address: "ул. Достык, 12",
@@ -221,9 +264,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.INTERMEDIATE,
       languages: "Русский,Қазақша",
-      startDate: new Date("2026-08-05T09:00:00Z"),
-      endDate: new Date("2026-08-06T18:00:00Z"),
-      registrationDeadline: new Date("2026-07-03T23:59:59Z"),
+      startDate: daysFromToday(30),
+      endDate: daysFromToday(31, 18),
+      registrationDeadline: deadlineIn(-2),
       price: 4000,
       city: "Шымкент",
       address: "ул. Байтурсынова, 5",
@@ -235,17 +278,22 @@ async function main() {
 
   // --- Прошедшие турниры (история) ---
 
-  const kazakhstanModelUn2024 = await prisma.tournament.create({
+  // Год в названии берём из вычисленной даты, а не пишем руками: с
+  // относительными датами «Kazakhstan Model UN 2024» рано или поздно
+  // разошлось бы с тем, что показано на карточке.
+  const kazakhstanModelUnStart = daysFromToday(-300);
+
+  const kazakhstanModelUn = await prisma.tournament.create({
     data: {
-      title: "Kazakhstan Model UN 2024",
+      title: `Kazakhstan Model UN ${kazakhstanModelUnStart.getUTCFullYear()}`,
       description: "Национальная модель ООН с участием делегаций со всего Казахстана.",
       format: TournamentFormat.MUN,
       locationType: LocationType.OFFLINE,
       level: Level.ADVANCED,
       languages: "Русский,English",
-      startDate: new Date("2024-11-10T09:00:00Z"),
-      endDate: new Date("2024-11-12T18:00:00Z"),
-      registrationDeadline: new Date("2024-10-25T23:59:59Z"),
+      startDate: kazakhstanModelUnStart,
+      endDate: daysFromToday(-298, 18),
+      registrationDeadline: deadlineIn(-315),
       price: 6000,
       city: "Алматы",
       address: "пр. Достык, 220",
@@ -263,9 +311,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.INTERMEDIATE,
       languages: "Русский",
-      startDate: new Date("2026-03-01T09:00:00Z"),
-      endDate: new Date("2026-03-02T18:00:00Z"),
-      registrationDeadline: new Date("2026-02-20T23:59:59Z"),
+      startDate: daysFromToday(-120),
+      endDate: daysFromToday(-119, 18),
+      registrationDeadline: deadlineIn(-130),
       price: 3500,
       city: "Шымкент",
       address: "ул. Кунаева, 8",
@@ -283,9 +331,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.INTERMEDIATE,
       languages: "Русский,English",
-      startDate: new Date("2026-01-15T09:00:00Z"),
-      endDate: new Date("2026-01-17T18:00:00Z"),
-      registrationDeadline: new Date("2025-12-30T23:59:59Z"),
+      startDate: daysFromToday(-170),
+      endDate: daysFromToday(-168, 18),
+      registrationDeadline: deadlineIn(-185),
       price: 7000,
       city: "Алматы",
       address: "ул. Фурманова, 187",
@@ -305,9 +353,9 @@ async function main() {
       locationType: LocationType.OFFLINE,
       level: Level.BEGINNER,
       languages: "Русский",
-      startDate: new Date("2026-11-01T09:00:00Z"),
-      endDate: new Date("2026-11-02T18:00:00Z"),
-      registrationDeadline: new Date("2026-10-15T23:59:59Z"),
+      startDate: daysFromToday(120),
+      endDate: daysFromToday(121, 18),
+      registrationDeadline: deadlineIn(100),
       price: 5000,
       city: "Караганда",
       address: "ул. Ерубаева, 1",
@@ -333,7 +381,7 @@ async function main() {
       },
       {
         userId: participant.id,
-        tournamentId: kazakhstanModelUn2024.id,
+        tournamentId: kazakhstanModelUn.id,
         status: RegistrationStatus.CONFIRMED,
       },
     ],
