@@ -20,7 +20,13 @@ vi.mock("next/cache", () => ({
 // запроса Next бросает ошибку. Запроса в тестах нет, поэтому выполняем задачу
 // сразу и не ждём её: код внутри (рассылка писем участникам) всё-таки
 // прогоняется, но его сбой не роняет тест — в проде он тоже best-effort.
-vi.mock("next/server", () => ({
+//
+// Мок ЧАСТИЧНЫЙ (через importOriginal): подменяем только `after`. Полная
+// подмена модуля выносила заодно NextRequest/NextResponse, и любой тест,
+// которому они нужны (tests/proxy-i18n.test.ts), падал с невнятным «No
+// "NextRequest" export is defined on the "next/server" mock».
+vi.mock("next/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/server")>()),
   after: (task: () => unknown) => {
     void Promise.resolve()
       .then(task)

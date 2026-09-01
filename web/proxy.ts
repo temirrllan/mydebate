@@ -10,7 +10,7 @@
 // перепроверяет isBlocked/актуальную роль в БД (та проверка — в
 // lib/auth/session.ts::getCurrentUser(), используемой в Server
 // Components/Actions). Proxy — первая линия защиты, не единственная.
-import { NextResponse } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 
 import { auth } from "@/auth";
@@ -84,34 +84,30 @@ function matchesPrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
-export default auth((req) => {
+/**
+ * Ролевые правила. Возвращает редирект, если пускать нельзя, и null, если
+ * можно — САМ ответ страницы формирует не он, а next-intl (см. proxy ниже).
+ *
+ * Обёрнут в auth() только ради req.auth: внутри обёртки NextAuth подменяет
+ * origin запроса на AUTH_URL, и всё, что строит из него адреса, начинает
+ * ссылаться на публичный домен вместо внутреннего. Для редиректа это как раз
+ * правильно (его видит браузер), а для внутреннего rewrite — нет.
+ */
+const decideAccess = auth((req) => {
   const { search } = req.nextUrl;
   const session = req.auth;
-
-  // Ответ next-intl: либо rewrite на внутренний маршрут /[locale]/..., либо
-  // редирект. Возвращаем именно его везде, где доступ разрешён, — подменив
-  // его на NextResponse.next(), мы бы потеряли разбор локали, и страница
-  // отрендерилась бы без словаря.
-  const intlResponse = handleI18n(req);
-
-  // Дальше работаем с путём БЕЗ префикса локали: правила доступа одинаковы
-  // для всех языков, дублировать их на каждую локаль незачем.
   const { locale, path: pathname } = splitLocale(req.nextUrl.pathname);
 
   // Публичные страницы и всё, что не попадает под явно защищённые префиксы
   // ниже, пропускаем без ограничений.
-  if (PUBLIC_PATHS.includes(pathname)) {
-    return intlResponse;
-  }
+  if (PUBLIC_PATHS.includes(pathname)) return null;
 
   const isAdminRoute = matchesPrefix(pathname, ADMIN_ONLY_PREFIXES);
   const isAuthRequiredRoute =
     matchesPrefix(pathname, AUTH_REQUIRED_PREFIXES) ||
     TOURNAMENT_ACTION_PATTERNS.some((pattern) => pattern.test(pathname));
 
-  if (!isAdminRoute && !isAuthRequiredRoute) {
-    return intlResponse;
-  }
+  if (!isAdminRoute && !isAuthRequiredRoute) return null;
 
   // Гость -> редирект на /login с callbackUrl (spec: "гость → redirect
   // /login?callbackUrl=...").
@@ -130,13 +126,52 @@ export default auth((req) => {
   // пользователь, которому только что выдали ADMIN, упирался в /403 до тех
   // пор, пока не выйдет и не зайдёт заново, — а по базе он уже администратор.
   //
-  // Отказ в доступе выдаёт requireAdmin() в app/admin/layout.tsx: он читает
-  // роль из БД на каждый рендер и отправляет чужих на /403. То есть проверка
-  // никуда не делась, просто выполняется там, где данные актуальны. Заодно
-  // это чинит и обратный случай: у снятого админа JWT ещё говорит ADMIN, и
-  // пропускала его как раз проверка здесь.
-  return intlResponse;
+  // Отказ в доступе выдаёт requireAdmin() в app/[locale]/admin/layout.tsx: он
+  // читает роль из БД на каждый рендер и отправляет чужих на /403. То есть
+  // проверка никуда не делась, просто выполняется там, где данные актуальны.
+  // Заодно это чинит и обратный случай: у снятого админа JWT ещё говорит
+  // ADMIN, и пропускала его как раз проверка здесь.
+  return null;
 });
+
+/**
+ * ПОРЯДОК ВЫЗОВОВ ЗДЕСЬ КРИТИЧЕН — на нём уже один раз слегла главная.
+ *
+ * next-intl отвечает внутренним rewrite: "/" переписывается на "/ru". Адрес
+ * этого rewrite он строит из origin запроса, который ему передали. Если
+ * передать запрос ИЗ обёртки auth(), origin там подменён на AUTH_URL — то
+ * есть на публичный домен (https://mydebate.kz), а не на внутренний, по
+ * которому приложение реально слушает. Next видит rewrite на чужой origin,
+ * считает его внешним и превращает в редирект — получается "/" → "/" по
+ * кругу. Локально это незаметно: там оба origin совпадают, и ломается только
+ * за обратным прокси, то есть ровно на проде.
+ *
+ * Поэтому handleI18n получает ОРИГИНАЛЬНЫЙ req, а auth() используется только
+ * чтобы узнать про сессию и при необходимости отдать редирект.
+ */
+export default async function proxy(
+  req: NextRequest,
+  event: NextFetchEvent,
+): Promise<NextResponse> {
+  // Типы NextAuth ждут свой NextAuthRequest — по факту это тот же
+  // NextRequest, обогащённый полем auth уже внутри обёртки.
+  const decision = (await decideAccess(req as never, event as never)) as
+    | NextResponse
+    | null
+    | undefined;
+
+  if (decision?.headers.get("location")) return decision;
+
+  const intlResponse = handleI18n(req);
+
+  // Куки, которые могла выставить сессия (продление JWT), переносим на
+  // финальный ответ — иначе, отбросив ответ auth(), мы бы их потеряли.
+  for (const cookie of decision?.headers.getSetCookie() ?? []) {
+    intlResponse.headers.append("set-cookie", cookie);
+  }
+
+  return intlResponse;
+}
 
 export const config = {
   // Не запускаем proxy на статике и служебных маршрутах.
