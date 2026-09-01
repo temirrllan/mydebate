@@ -4,7 +4,7 @@
 
 **MyDebate** — веб-платформа, объединяющая дебатные турниры и MUN-конференции Казахстана в единую экосистему: поиск, публикация, регистрация, история участия. Цель MVP — проверить Product-Market Fit.
 
-Связанные заметки: [[tasks]] · [[progress]]
+Связанные заметки: [[tasks]] · [[progress]] · [[i18n]] · [[deploy-vps]]
 
 ---
 
@@ -12,11 +12,13 @@
 
 | Параметр | Решение |
 |---|---|
-| Фреймворк | Next.js 14 (App Router) + TypeScript |
-| Стили | Tailwind CSS |
-| ORM / БД | Prisma + **SQLite** (`dev.db`) на время разработки → PostgreSQL перед деплоем |
-| Авторизация | NextAuth: **email + пароль** (Google OAuth пока заглушён) |
+| Фреймворк | Next.js 16 (App Router) + TypeScript |
+| Стили | Tailwind CSS v4 |
+| ORM / БД | Prisma 7 + **PostgreSQL** (на старте была SQLite) |
+| Авторизация | NextAuth v5: email + пароль и Google OAuth |
 | Просмотр БД | `npx prisma studio` |
+| Языки интерфейса | Русский / Қазақша / English на `next-intl` — [[i18n]] |
+| Развёртывание | Свой VPS: Docker Compose + Caddy, автодеплой при пуше в `main` — [[deploy-vps]] |
 
 ## Ключевые договорённости
 
