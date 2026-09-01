@@ -21,6 +21,7 @@ export function ChangePasswordForm() {
   // Кабинет ещё не переведён целиком, но чеклист требований к паролю общий с
   // формой регистрации — берём подписи оттуда, чтобы они не разъехались.
   const t = useTranslations("auth");
+  const tProfile = useTranslations("profile");
   const [state, formAction, pending] = useActionState(changePassword, undefined);
   const [values, setValues] = useState(EMPTY);
 
@@ -46,7 +47,7 @@ export function ChangePasswordForm() {
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
           <KeyRound size={18} />
         </div>
-        <h2 className="text-lg font-bold text-navy-900">Смена пароля</h2>
+        <h2 className="text-lg font-bold text-navy-900">{tProfile("changePassword")}</h2>
       </div>
 
       {state?.success && (
@@ -64,7 +65,7 @@ export function ChangePasswordForm() {
       <form action={formAction} noValidate className="mt-5 space-y-5">
         <div>
           <label htmlFor="currentPassword" className="text-sm font-medium text-ink">
-            Текущий пароль <span className="text-rose-500">*</span>
+            {tProfile("currentPassword")} <span className="text-rose-500">*</span>
           </label>
           <div className="mt-1.5">
             <PasswordInput
@@ -85,7 +86,7 @@ export function ChangePasswordForm() {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="newPassword" className="text-sm font-medium text-ink">
-              Новый пароль <span className="text-rose-500">*</span>
+              {tProfile("newPassword")} <span className="text-rose-500">*</span>
             </label>
             <div className="mt-1.5">
               <PasswordInput
@@ -105,7 +106,7 @@ export function ChangePasswordForm() {
 
           <div>
             <label htmlFor="confirmPassword" className="text-sm font-medium text-ink">
-              Повторите пароль <span className="text-rose-500">*</span>
+              {tProfile("repeatPassword")} <span className="text-rose-500">*</span>
             </label>
             <div className="mt-1.5">
               <PasswordInput
@@ -142,7 +143,7 @@ export function ChangePasswordForm() {
         )}
 
         <Button type="submit" disabled={pending}>
-          {pending ? "Сохраняем…" : <><KeyRound size={16} /> Изменить пароль</>}
+          {pending ? tProfile("saving") : <><KeyRound size={16} /> {tProfile("changePasswordSubmit")}</>}
         </Button>
       </form>
     </Card>

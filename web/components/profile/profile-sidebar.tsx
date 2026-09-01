@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import {
   User,
   Trophy,
@@ -22,26 +23,29 @@ export type ProfileTab =
   | "notifications"
   | "settings";
 
-const TABS: { id: ProfileTab; label: string; icon: typeof User }[] = [
-  { id: "overview", label: "Профиль", icon: User },
-  { id: "tournaments", label: "Мои турниры", icon: Trophy },
-  { id: "applications", label: "Мои заявки", icon: ClipboardList },
-  { id: "favorites", label: "Избранное", icon: Heart },
-  { id: "notifications", label: "Уведомления", icon: Bell },
-  { id: "settings", label: "Настройки", icon: Settings },
+// Подписи вкладок — по ключу из словаря (namespace "profile").
+const TABS: { id: ProfileTab; key: string; icon: typeof User }[] = [
+  { id: "overview", key: "tabOverview", icon: User },
+  { id: "tournaments", key: "tabTournaments", icon: Trophy },
+  { id: "applications", key: "tabApplications", icon: ClipboardList },
+  { id: "favorites", key: "tabFavorites", icon: Heart },
+  { id: "notifications", key: "tabNotifications", icon: Bell },
+  { id: "settings", key: "tabSettings", icon: Settings },
 ];
 
 /** Боковое меню личного кабинета (макет "Профиль.png") — вкладки через `?tab=`. */
-export function ProfileSidebar({
+export async function ProfileSidebar({
   active,
   unreadNotificationCount,
 }: {
   active: ProfileTab;
   unreadNotificationCount: number;
 }) {
+  const t = await getTranslations("profile");
+
   return (
     <Card className="p-3">
-      <nav className="flex flex-col gap-1" aria-label="Разделы личного кабинета">
+      <nav className="flex flex-col gap-1" aria-label={t("navLabel")}>
         {TABS.map((tab) => {
           const isActive = tab.id === active;
           const Icon = tab.icon;
@@ -57,7 +61,7 @@ export function ProfileSidebar({
             >
               <span className="flex items-center gap-2.5">
                 <Icon size={17} />
-                {tab.label}
+                {t(tab.key)}
               </span>
               {tab.id === "notifications" && unreadNotificationCount > 0 && (
                 <Badge tone="red" className="px-1.5 py-0.5 text-[11px]">
@@ -72,7 +76,7 @@ export function ProfileSidebar({
       <form action={logoutUser} className="mt-2 border-t border-line pt-2">
         <Button type="submit" variant="ghost" className="w-full justify-start gap-2.5 text-slate-600">
           <LogOut size={17} />
-          Выйти
+          {t("logout")}
         </Button>
       </form>
     </Card>

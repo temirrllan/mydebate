@@ -10,6 +10,7 @@ import { FieldError } from "@/components/auth/field-error";
 import { updateProfile } from "@/lib/actions/profile";
 import { LEVEL_LABEL } from "@/lib/format";
 import { Level, parseLanguages } from "@/lib/enums";
+import { useTranslations } from "next-intl";
 
 const LEVEL_OPTIONS = [Level.BEGINNER, Level.INTERMEDIATE, Level.ADVANCED] as const;
 
@@ -34,6 +35,7 @@ export type ProfileFormValues = {
  * логин-идентификатор, смена — через поддержку (см. validations/profile.ts).
  */
 export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
+  const t = useTranslations("profile");
   const [state, formAction, pending] = useActionState(updateProfile, undefined);
   const [values, setValues] = useState(initial);
 
@@ -48,8 +50,8 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
 
   return (
     <Card className="p-6 sm:p-8">
-      <h2 className="text-lg font-bold text-navy-900">Личная информация</h2>
-      <p className="mt-1 text-sm text-muted">Эти данные видны организаторам в ваших заявках.</p>
+      <h2 className="text-lg font-bold text-navy-900">{t("personalInfo")}</h2>
+      <p className="mt-1 text-sm text-muted">{t("personalInfoHint")}</p>
 
       {state?.success && (
         <p role="status" className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -65,7 +67,7 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
 
       <form action={formAction} noValidate className="mt-5 space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Имя" required htmlFor="firstName" error={fieldErrors.firstName} errorId={descId("firstName")}>
+          <Field label={t("firstName")} required htmlFor="firstName" error={fieldErrors.firstName} errorId={descId("firstName")}>
             <Input
               id="firstName"
               name="firstName"
@@ -78,7 +80,7 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
             />
           </Field>
 
-          <Field label="Фамилия" required htmlFor="lastName" error={fieldErrors.lastName} errorId={descId("lastName")}>
+          <Field label={t("lastName")} required htmlFor="lastName" error={fieldErrors.lastName} errorId={descId("lastName")}>
             <Input
               id="lastName"
               name="lastName"
@@ -101,11 +103,11 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
               <Input id="email" value={values.email} disabled readOnly className="bg-canvas text-muted" />
             </div>
             <p className="mt-1.5 text-xs text-muted">
-              Email — это логин, его смена только через поддержку.
+              {t("emailHint")}
             </p>
           </div>
 
-          <Field label="Телефон" htmlFor="phone" error={fieldErrors.phone} errorId={descId("phone")}>
+          <Field label={t("phone")} htmlFor="phone" error={fieldErrors.phone} errorId={descId("phone")}>
             <Input
               id="phone"
               name="phone"
@@ -121,11 +123,11 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Город" htmlFor="city" error={fieldErrors.city} errorId={descId("city")}>
+          <Field label={t("city")} htmlFor="city" error={fieldErrors.city} errorId={descId("city")}>
             <Input
               id="city"
               name="city"
-              placeholder="Астана"
+              placeholder={t("cityPlaceholder")}
               value={values.city}
               onChange={(e) => update("city", e.target.value)}
               invalid={err("city")}
@@ -134,7 +136,7 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
             />
           </Field>
 
-          <Field label="Уровень опыта" htmlFor="level" error={fieldErrors.level} errorId={descId("level")}>
+          <Field label={t("experience")} htmlFor="level" error={fieldErrors.level} errorId={descId("level")}>
             <Select
               id="level"
               name="level"
@@ -144,7 +146,7 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
               aria-invalid={err("level")}
               aria-describedby={descId("level")}
             >
-              <option value="">Не указан</option>
+              <option value="">{t("levelNotSet")}</option>
               {LEVEL_OPTIONS.map((l) => (
                 <option key={l} value={l}>
                   {LEVEL_LABEL[l] ?? l}
@@ -155,11 +157,11 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Школа / Университет" htmlFor="school" error={fieldErrors.school} errorId={descId("school")}>
+          <Field label={t("schoolLabel")} htmlFor="school" error={fieldErrors.school} errorId={descId("school")}>
             <Input
               id="school"
               name="school"
-              placeholder="Назарбаев Университет"
+              placeholder={t("schoolPlaceholder")}
               value={values.school}
               onChange={(e) => update("school", e.target.value)}
               invalid={err("school")}
@@ -168,11 +170,11 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
             />
           </Field>
 
-          <Field label="Направление / Специальность" htmlFor="major" error={fieldErrors.major} errorId={descId("major")}>
+          <Field label={t("majorLabel")} htmlFor="major" error={fieldErrors.major} errorId={descId("major")}>
             <Input
               id="major"
               name="major"
-              placeholder="Международные отношения"
+              placeholder={t("majorPlaceholder")}
               value={values.major}
               onChange={(e) => update("major", e.target.value)}
               invalid={err("major")}
@@ -183,16 +185,16 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
         </div>
 
         <Field
-          label="Языки"
+          label={t("languages")}
           htmlFor="languages"
           error={fieldErrors.languages}
           errorId={descId("languages")}
-          hint="Через запятую, например: Русский, English, Қазақша"
+          hint={t("languagesHint")}
         >
           <Input
             id="languages"
             name="languages"
-            placeholder="Русский, English"
+            placeholder={t("languagesPlaceholder")}
             value={values.languages}
             onChange={(e) => update("languages", e.target.value)}
             invalid={err("languages")}
@@ -210,12 +212,12 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
           )}
         </Field>
 
-        <Field label="О себе" htmlFor="bio" error={fieldErrors.bio} errorId={descId("bio")}>
+        <Field label={t("bio")} htmlFor="bio" error={fieldErrors.bio} errorId={descId("bio")}>
           <textarea
             id="bio"
             name="bio"
             rows={3}
-            placeholder="Коротко о вашем опыте в дебатах / MUN…"
+            placeholder={t("bioPlaceholder")}
             value={values.bio}
             onChange={(e) => update("bio", e.target.value)}
             aria-invalid={err("bio")}
@@ -224,12 +226,12 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
           />
         </Field>
 
-        <Field label="Опыт участия" htmlFor="experience" error={fieldErrors.experience} errorId={descId("experience")}>
+        <Field label={t("experienceLabel")} htmlFor="experience" error={fieldErrors.experience} errorId={descId("experience")}>
           <textarea
             id="experience"
             name="experience"
             rows={3}
-            placeholder="Турниры, награды, роли…"
+            placeholder={t("experiencePlaceholder")}
             value={values.experience}
             onChange={(e) => update("experience", e.target.value)}
             aria-invalid={err("experience")}
@@ -239,7 +241,7 @@ export function SettingsForm({ initial }: { initial: ProfileFormValues }) {
         </Field>
 
         <Button type="submit" disabled={pending}>
-          {pending ? "Сохраняем…" : <><Save size={16} /> Сохранить</>}
+          {pending ? t("saving") : <><Save size={16} /> {t("save")}</>}
         </Button>
       </form>
     </Card>

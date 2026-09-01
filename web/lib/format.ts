@@ -132,14 +132,13 @@ export const TOURNAMENT_STATUS_TONE: Record<string, "blue" | "green" | "orange" 
 export function getTournamentStatusDisplay(
   status: string,
   rejectionReason?: string | null,
-): { label: string; tone: "blue" | "green" | "orange" | "gray" | "red" } {
+): { key: string; tone: "blue" | "green" | "orange" | "gray" | "red" } {
+  // Возвращаем КЛЮЧ статуса (namespace "enums.tournamentStatus"), а не текст:
+  // подпись зависит от языка страницы, а он известен только при рендере.
   if (status === TournamentStatus.HIDDEN && rejectionReason) {
-    return { label: "Отклонён", tone: "red" };
+    return { key: TournamentStatus.REJECTED, tone: "red" };
   }
-  return {
-    label: TOURNAMENT_STATUS_LABEL[status] ?? status,
-    tone: TOURNAMENT_STATUS_TONE[status] ?? "gray",
-  };
+  return { key: status, tone: TOURNAMENT_STATUS_TONE[status] ?? "gray" };
 }
 
 /**

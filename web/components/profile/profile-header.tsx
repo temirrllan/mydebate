@@ -1,15 +1,10 @@
 import Image from "next/image";
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { Mail, Phone, MapPin, Trophy, Heart, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Role } from "@/lib/enums";
 
-const ROLE_LABEL: Record<string, string> = {
-  [Role.USER]: "Участник",
-  [Role.ORGANIZER]: "Организатор",
-  [Role.ADMIN]: "Администратор",
-};
 
 export type ProfileHeaderUser = {
   firstName: string;
@@ -23,13 +18,15 @@ export type ProfileHeaderUser = {
 };
 
 /** Navy-шапка личного кабинета (макет "Профиль.png"). */
-export function ProfileHeader({
+export async function ProfileHeader({
   user,
   stats,
 }: {
   user: ProfileHeaderUser;
   stats: { registrations: number; favorites: number; unreadNotifications: number };
 }) {
+  const t = await getTranslations("profile");
+  const tEnum = await getTranslations("enums");
   const initials = `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase();
 
   return (
@@ -59,7 +56,7 @@ export function ProfileHeader({
                 <h1 className="text-xl font-bold text-white sm:text-2xl">
                   {user.firstName} {user.lastName}
                 </h1>
-                <Badge tone="blue">{ROLE_LABEL[user.role] ?? user.role}</Badge>
+                <Badge tone="blue">{tEnum(`role.${user.role}`)}</Badge>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-white/70">
                 {user.city && (
@@ -81,15 +78,15 @@ export function ProfileHeader({
           </div>
 
           <Button asChild variant="outline" size="sm" className="border-white/25 bg-transparent text-white hover:border-white/50 hover:bg-white/10 hover:text-white">
-            <Link href="/profile?tab=settings">Редактировать профиль</Link>
+            <Link href="/profile?tab=settings">{t("editProfile")}</Link>
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 bg-white/[0.03]">
-        <Stat icon={Trophy} value={stats.registrations} label="Заявок" />
-        <Stat icon={Heart} value={stats.favorites} label="Избранное" />
-        <Stat icon={Bell} value={stats.unreadNotifications} label="Новых уведомлений" />
+        <Stat icon={Trophy} value={stats.registrations} label={t("statApplications")} />
+        <Stat icon={Heart} value={stats.favorites} label={t("statFavorites")} />
+        <Stat icon={Bell} value={stats.unreadNotifications} label={t("statUnread")} />
       </div>
     </div>
   );

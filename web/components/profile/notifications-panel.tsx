@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/actions/notifications";
 import type { ProfileNotificationItem } from "@/lib/profile/queries";
+import { useTranslations } from "next-intl";
 
 /** «11 мая 2024, 14:32» — с временем, в отличие от formatDateRu (там только дата). */
 function formatDateTimeRu(date: Date | string) {
@@ -21,6 +22,7 @@ function formatDateTimeRu(date: Date | string) {
 }
 
 export function NotificationsPanel({ notifications }: { notifications: ProfileNotificationItem[] }) {
+  const t = useTranslations("profile");
   const [items, setItems] = useState(notifications);
   const [pending, startTransition] = useTransition();
 
@@ -50,8 +52,8 @@ export function NotificationsPanel({ notifications }: { notifications: ProfileNo
     return (
       <EmptyState
         icon={Bell}
-        title="Пока нет уведомлений"
-        description="Здесь появятся уведомления о статусе ваших заявок и новостях турниров."
+        title={t("noNotifications")}
+        description={t("noNotificationsText")}
       />
     );
   }
@@ -61,7 +63,7 @@ export function NotificationsPanel({ notifications }: { notifications: ProfileNo
       {hasUnread && (
         <div className="mb-4 flex justify-end">
           <Button type="button" variant="outline" size="sm" onClick={markAll} disabled={pending}>
-            <CheckCheck size={15} /> Прочитать все
+            <CheckCheck size={15} /> {t("readAll")}
           </Button>
         </div>
       )}
@@ -96,7 +98,7 @@ export function NotificationsPanel({ notifications }: { notifications: ProfileNo
                 variant="ghost"
                 size="sm"
                 onClick={() => markOne(n.id)}
-                aria-label="Отметить прочитанным"
+                aria-label={t("markRead")}
               >
                 <Check size={15} />
               </Button>

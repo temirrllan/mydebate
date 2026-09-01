@@ -1,18 +1,18 @@
-import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Calendar, MapPin, Users, Info, Pencil, UsersRound } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  FORMAT_LABEL,
-  LOCATION_TYPE_LABEL,
-  formatDateRu,
-  getTournamentStatusDisplay,
-} from "@/lib/format";
+import { formatDate, getTournamentStatusDisplay } from "@/lib/format";
 import { TournamentStatus } from "@/lib/enums";
 import type { MyTournamentItem } from "@/lib/tournaments/queries";
 
 /** Строка организованного турнира — вкладка «Мои турниры» (организатор), профиль. */
-export function MyTournamentRow({ tournament }: { tournament: MyTournamentItem }) {
+export async function MyTournamentRow({ tournament }: { tournament: MyTournamentItem }) {
+  const t = await getTranslations("profile");
+  const tEnum = await getTranslations("enums");
+  const locale = await getLocale();
+
   const statusDisplay = getTournamentStatusDisplay(tournament.status, tournament.rejectionReason);
   const canView = tournament.status === TournamentStatus.PUBLISHED;
 
@@ -23,19 +23,19 @@ export function MyTournamentRow({ tournament }: { tournament: MyTournamentItem }
         <p className="truncate font-semibold text-ink">{tournament.title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
           <span className="inline-flex items-center gap-1">
-            <Calendar size={14} /> {formatDateRu(tournament.startDate)}
+            <Calendar size={14} /> {formatDate(tournament.startDate, locale)}
           </span>
           <span className="inline-flex items-center gap-1">
-            <MapPin size={14} /> {tournament.city ?? LOCATION_TYPE_LABEL[tournament.locationType] ?? "Онлайн"}
+            <MapPin size={14} /> {tournament.city ?? tEnum(`locationType.${tournament.locationType}`)}
           </span>
           <span className="inline-flex items-center gap-1">
-            <Users size={14} /> {tournament.registrationsCount}{" "}
-            {pluralizeParticipant(tournament.registrationsCount)}
+            <Users size={14} />{" "}
+            {t("applicationsCount", { count: tournament.registrationsCount })}
           </span>
         </div>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <Badge tone="blue" className="text-[11px]">
-            {FORMAT_LABEL[tournament.format] ?? tournament.format}
+            {tEnum(`format.${tournament.format}`)}
           </Badge>
         </div>
       </div>
@@ -54,7 +54,7 @@ export function MyTournamentRow({ tournament }: { tournament: MyTournamentItem }
         )}
 
         <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
-          <Badge tone={statusDisplay.tone}>{statusDisplay.label}</Badge>
+          <Badge tone={statusDisplay.tone}>{tEnum(`tournamentStatus.${statusDisplay.key}`)}</Badge>
           {tournament.rejectionReason && (
             <p className="inline-flex max-w-xs items-start gap-1 text-right text-xs text-muted">
               <Info size={13} className="mt-0.5 shrink-0" /> {tournament.rejectionReason}
@@ -68,12 +68,12 @@ export function MyTournamentRow({ tournament }: { tournament: MyTournamentItem }
       <div className="flex flex-wrap gap-2 sm:pl-24">
         <Button asChild size="sm" variant="outline">
           <Link href={`/tournaments/${tournament.id}/edit`}>
-            <Pencil size={14} /> Редактировать
+            <Pencil size={14} /> {t("edit")}
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline">
           <Link href={`/tournaments/${tournament.id}/participants`}>
-            <UsersRound size={14} /> Участники ({tournament.registrationsCount})
+            <UsersRound size={14} /> {t("participants", { count: tournament.registrationsCount })}
           </Link>
         </Button>
       </div>
@@ -81,10 +81,3 @@ export function MyTournamentRow({ tournament }: { tournament: MyTournamentItem }
   );
 }
 
-function pluralizeParticipant(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return "заявка";
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "заявки";
-  return "заявок";
-}

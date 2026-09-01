@@ -81,6 +81,10 @@ describe("словари переводов", () => {
         "filters.format", // «Формат» — заимствование, в казахском так же
         "tournament.format",
         "registration.asideFormat", // «Формат: …» — то же слово
+        "profile.metaTitle", // «Профиль» — заимствование
+        "profile.tabOverview",
+        "profile.phone", // «Телефон»
+        "profile.cityPlaceholder", // «Астана» — имя собственное
         // MUN и уровни (Beginner/Intermediate/Advanced) — устоявшиеся термины
         // дебатного сообщества, их не переводят ни на один из трёх языков.
         "enums.format.MUN",

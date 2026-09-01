@@ -7,7 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FORMAT_LABEL, LOCATION_TYPE_LABEL, formatDateRu, getTournamentStatusDisplay } from "@/lib/format";
+import {
+  FORMAT_LABEL,
+  LOCATION_TYPE_LABEL,
+  TOURNAMENT_STATUS_LABEL,
+  formatDateRu,
+  getTournamentStatusDisplay,
+} from "@/lib/format";
 import { TournamentStatus } from "@/lib/enums";
 import { approveTournament, rejectTournament, hideTournament, deleteTournament } from "@/lib/actions/admin";
 import type { AdminTournamentListItem } from "@/lib/admin/queries";
@@ -151,7 +157,7 @@ export function ModerationTable({
                   ) : (
                     <span className="font-semibold text-ink">{t.title}</span>
                   )}
-                  <Badge tone={statusDisplay.tone}>{statusDisplay.label}</Badge>
+                  <Badge tone={statusDisplay.tone}>{TOURNAMENT_STATUS_LABEL[statusDisplay.key] ?? statusDisplay.key}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted">
                   Организатор: {t.organizer.firstName} {t.organizer.lastName} · {t.organizer.email}
