@@ -27,6 +27,18 @@ export type TournamentCardData = {
  * избранного (auth-зависимая интерактивность, добавляется в Этапе 4 —
  * `components/tournaments/favorite-button.tsx` пока не существует, рендерить
  * сюда как children/prop, не переписывая саму карточку).
+ *
+ * Кликабельна вся карточка, а не только кнопка «Подробнее». Сделано приёмом
+ * «stretched link»: ссылка стоит на заголовке (её и читает скринридер, и
+ * копирует «копировать адрес ссылки»), а её псевдоэлемент `::after`
+ * растянут на всю карточку — та `relative`. Обёртывать карточку целиком в
+ * <a> нельзя: внутри есть своя интерактивность (сердечко избранного,
+ * кнопка «Подробнее»), а вложенные интерактивные элементы — невалидный
+ * HTML и ломают навигацию с клавиатуры.
+ *
+ * Поэтому всё, что должно оставаться нажимаемым поверх растянутой ссылки,
+ * поднято `relative z-10` (сердечко) — иначе накрывающий слой перехватил бы
+ * клик и вместо добавления в избранное открывал турнир.
  */
 export function TournamentCard({
   tournament,
@@ -38,7 +50,7 @@ export function TournamentCard({
   const open = isRegistrationOpen(tournament.registrationDeadline);
 
   return (
-    <Card className="group flex flex-col overflow-hidden transition-shadow hover:shadow-lg hover:shadow-navy-900/5">
+    <Card className="group relative flex flex-col overflow-hidden transition-shadow hover:shadow-lg hover:shadow-navy-900/5 focus-within:ring-2 focus-within:ring-brand-500/40">
       <div className="relative h-40 overflow-hidden bg-navy-800">
         {tournament.coverImage ? (
           <Image
@@ -54,11 +66,18 @@ export function TournamentCard({
         <Badge tone={open ? "green" : "gray"} className="absolute left-3 top-3">
           {open ? "Регистрация открыта" : "Регистрация завершена"}
         </Badge>
-        {favoriteSlot && <div className="absolute right-3 top-3">{favoriteSlot}</div>}
+        {favoriteSlot && <div className="absolute right-3 top-3 z-10">{favoriteSlot}</div>}
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="line-clamp-2 font-semibold text-ink">{tournament.title}</h3>
+        <h3 className="line-clamp-2 font-semibold text-ink">
+          <Link
+            href={`/tournaments/${tournament.id}`}
+            className="outline-none transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-brand-700"
+          >
+            {tournament.title}
+          </Link>
+        </h3>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
           <span className="inline-flex items-center gap-1.5">
@@ -78,9 +97,11 @@ export function TournamentCard({
           )}
         </div>
 
+        {/* Ведёт туда же, куда и вся карточка, — остаётся как явный призыв
+            к действию для тех, кто ищет глазами кнопку. */}
         <div className="mt-auto pt-5">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/tournaments/${tournament.id}`}>
+          <Button asChild variant="outline" size="sm" className="relative">
+            <Link href={`/tournaments/${tournament.id}`} tabIndex={-1} aria-hidden="true">
               Подробнее <ArrowRight size={16} />
             </Link>
           </Button>

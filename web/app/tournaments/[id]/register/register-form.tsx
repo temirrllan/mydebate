@@ -16,9 +16,13 @@ import { registerForTournament } from "@/lib/actions/registrations";
 // приходит из `state.message`, которое сервер заполняет этой же константой.
 import { Level } from "@/lib/enums";
 import { LEVEL_LABEL } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { PaymentSection } from "./payment-section";
 
 const initialState = undefined;
+
+/** Комитет MUN = раздел турнира: то, что организатор ввёл на шаге «Разделы». */
+export type Committee = { title: string; description: string };
 
 export function RegisterForm({
   tournamentId,
@@ -36,11 +40,16 @@ export function RegisterForm({
   tournamentTitle: string;
   languages: string[];
   /**
-   * Комитеты MUN — заголовки разделов турнира, которые организатор завёл при
-   * создании (UNHRC, WHO, UNEP, …). Используются только при isMun; пустой
-   * список означает, что разделов у турнира нет и выбирать не из чего.
+   * Комитеты MUN — разделы турнира, которые организатор завёл при создании
+   * (UNHRC, WHO, UNEP, …), вместе с их описанием. Используются только при
+   * isMun; пустой список означает, что разделов у турнира нет и выбирать не
+   * из чего.
+   *
+   * Описание нужно именно здесь: раньше форма показывала один заголовок, и
+   * участник выбирал комитет вслепую — чтобы прочитать повестку, надо было
+   * уходить обратно на страницу турнира.
    */
-  committees?: string[];
+  committees?: Committee[];
   defaultFullName: string;
   defaultEmail: string;
   defaultPhone?: string;
@@ -325,43 +334,10 @@ export function RegisterForm({
               <FieldError id="experienceLevel-error" messages={fieldErrors.experienceLevel} />
             </div>
 
-            {/* Язык или комитет — ровно одно поле, по формату турнира. На MUN
-                язык неактуален: делегату важно попасть в конкретный комитет,
-                а комитеты — это разделы, заданные организатором при создании
-                турнира. Если разделов нет, выбирать не из чего — поле не
-                показываем (сервер его в этом случае и не требует). */}
-            {isMun ? (
-              committees.length > 0 && (
-                <div>
-                  <label htmlFor="committee" className="text-sm font-medium text-ink">
-                    Выбор комитета <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="mt-1.5">
-                    <Select
-                      id="committee"
-                      name="committee"
-                      required
-                      defaultValue=""
-                      invalid={Boolean(fieldErrors.committee?.length)}
-                      aria-invalid={Boolean(fieldErrors.committee?.length)}
-                      aria-describedby={
-                        fieldErrors.committee?.length ? "committee-error" : undefined
-                      }
-                    >
-                      <option value="" disabled>
-                        Выберите комитет
-                      </option>
-                      {committees.map((committee) => (
-                        <option key={committee} value={committee}>
-                          {committee}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <FieldError id="committee-error" messages={fieldErrors.committee} />
-                </div>
-              )
-            ) : (
+            {/* Язык — только у дебатов. На MUN его место занимает выбор
+                комитета, но тот идёт отдельным блоком во всю ширину (ниже):
+                у комитета есть описание, и в половину строки оно не влезает. */}
+            {!isMun && (
               <div>
                 <label htmlFor="preferredLanguage" className="text-sm font-medium text-ink">
                   Предпочитаемый язык <span className="text-rose-500">*</span>
@@ -392,6 +368,13 @@ export function RegisterForm({
               </div>
             )}
           </div>
+
+          {/* Выбор комитета (MUN). Если разделов у турнира нет — выбирать не
+              из чего, блок не рендерим, и сервер комитет в этом случае не
+              требует (см. lib/actions/registrations.ts). */}
+          {isMun && committees.length > 0 && (
+            <CommitteePicker committees={committees} errors={fieldErrors.committee} />
+          )}
 
           <div>
             <label htmlFor="additionalInfo" className="text-sm font-medium text-ink">
@@ -465,5 +448,69 @@ export function RegisterForm({
         )}
       </Button>
     </form>
+  );
+}
+
+/**
+ * Выбор комитета MUN — карточки с названием и описанием, которое организатор
+ * написал в разделе турнира (повестка, язык работы, требования к делегатам).
+ *
+ * Раньше здесь был обычный <select> с одними заголовками («UNHRC», «WHO»), и
+ * участник выбирал вслепую: чтобы прочитать, о чём комитет, приходилось
+ * возвращаться на страницу турнира и терять заполненную форму.
+ *
+ * Радиокнопки настоящие, а не div'ы с onClick: так работают стрелки на
+ * клавиатуре, скринридер объявляет «группа, 2 из 5», а браузер сам не даёт
+ * отправить форму без выбора (required). Подсветка выбранной карточки — на
+ * `has-[:checked]`, поэтому состояние не приходится дублировать в useState.
+ */
+function CommitteePicker({
+  committees,
+  errors,
+}: {
+  committees: Committee[];
+  errors?: string[];
+}) {
+  const invalid = Boolean(errors?.length);
+
+  return (
+    <fieldset aria-describedby={invalid ? "committee-error" : undefined}>
+      <legend className="text-sm font-medium text-ink">
+        Предпочитаемый комитет <span className="text-rose-500">*</span>
+      </legend>
+      <p className="mt-1 text-sm text-muted">
+        Выберите комитет, в котором хотите работать делегатом.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {committees.map((committee) => (
+          <label
+            key={committee.title}
+            className={cn(
+              "flex cursor-pointer gap-3 rounded-[var(--radius-card)] border bg-white p-4 transition-colors",
+              "hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50",
+              "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500/40",
+              invalid ? "border-rose-300" : "border-line",
+            )}
+          >
+            <input
+              type="radio"
+              name="committee"
+              value={committee.title}
+              required
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+            />
+            <span className="min-w-0">
+              <span className="block font-semibold text-ink">{committee.title}</span>
+              <span className="mt-1 block whitespace-pre-line text-sm leading-relaxed text-muted">
+                {committee.description}
+              </span>
+            </span>
+          </label>
+        ))}
+      </div>
+
+      <FieldError id="committee-error" messages={errors} />
+    </fieldset>
   );
 }

@@ -3,7 +3,7 @@
 import { Link2, Mail, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FieldError } from "@/components/auth/field-error";
-import { InstagramIcon, TelegramIcon } from "@/components/icons/social";
+import { InstagramIcon, TelegramIcon, TikTokIcon } from "@/components/icons/social";
 import { RegistrationType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 import type { FieldErrors, WizardUpdate, WizardValues } from "./types";
@@ -156,7 +156,10 @@ export function Step3Contacts({
         </div>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-3">
+      {/* Контакты. Ник можно писать как угодно — «@mydebate», «mydebate»,
+          «instagram.com/mydebate»: в рабочую ссылку это превращает
+          normalizeSocialUrl (lib/social.ts) на странице турнира. */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label htmlFor="email" className="text-sm font-medium text-ink">
             Контактный email <span className="text-muted">(необязательно)</span>
@@ -194,6 +197,24 @@ export function Step3Contacts({
             />
           </div>
           <FieldError id="instagram-error" messages={errors.instagram} />
+        </div>
+
+        <div>
+          <label htmlFor="tiktok" className="text-sm font-medium text-ink">
+            TikTok <span className="text-muted">(необязательно)</span>
+          </label>
+          <div className="relative mt-1.5">
+            <TikTokIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" width={16} height={16} />
+            <Input
+              id="tiktok"
+              value={values.tiktok}
+              onChange={(e) => update("tiktok", e.target.value)}
+              placeholder="@mydebate"
+              className="pl-10"
+              aria-describedby={errors.tiktok?.length ? "tiktok-error" : undefined}
+            />
+          </div>
+          <FieldError id="tiktok-error" messages={errors.tiktok} />
         </div>
 
         <div>

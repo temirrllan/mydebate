@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ParticipantCard } from "@/components/tournaments/participant-card";
+import { AnnouncementPanel } from "@/components/tournaments/announcement-panel";
 import { setRegistrationStatus } from "@/lib/actions/registrations";
 import { REG_STATUS_SHORT_LABEL, REG_STATUS_ORDER, REG_STATUS_TONE } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -17,15 +18,18 @@ const ALL = "ALL";
 /**
  * Управление заявками участников — клиентская обёртка над списком
  * (/tournaments/[id]/participants). Организатор может фильтровать по статусу,
- * менять статус каждой заявки (оптимистично, как UserRow) и выгружать список
- * в CSV. Контроль доступа полностью на сервере (setRegistrationStatus +
- * export route) — здесь только UI.
+ * менять статус каждой заявки (оптимистично, как UserRow), выгружать список
+ * в CSV и разослать участникам сообщение (AnnouncementPanel). Контроль
+ * доступа полностью на сервере (setRegistrationStatus + announceToParticipants
+ * + export route) — здесь только UI.
  */
 export function ParticipantsManager({
   tournamentId,
+  tournamentTitle,
   participants: initial,
 }: {
   tournamentId: string;
+  tournamentTitle: string;
   participants: TournamentParticipant[];
 }) {
   const [participants, setParticipants] = useState(initial);
@@ -59,6 +63,18 @@ export function ParticipantsManager({
 
   return (
     <div>
+      {/* Рассылка живёт здесь, а не отдельным блоком на странице: ей нужны те
+          же счётчики по статусам, что и фильтрам, а они пересчитываются при
+          каждой смене статуса заявки. */}
+      <div className="mb-6">
+        <AnnouncementPanel
+          tournamentId={tournamentId}
+          tournamentTitle={tournamentTitle}
+          counts={counts}
+          total={participants.length}
+        />
+      </div>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Фильтр по статусу заявки">
           {chips.map((chip) => {

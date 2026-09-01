@@ -211,8 +211,14 @@ const step3BaseSchema = z.object({
   paymentMethod: z.string().trim().max(60).optional().or(z.literal("")),
   paymentAccount: z.string().trim().max(60).optional().or(z.literal("")),
   paymentRecipient: z.string().trim().max(150).optional().or(z.literal("")),
+  // Соцсети храним ровно так, как ввёл организатор («@mydebate», «tiktok.com/
+  // @mydebate», полная ссылка): в рабочий https-адрес это превращает
+  // normalizeSocialUrl (lib/social.ts) уже на выводе. Так чинятся и записи,
+  // сделанные до появления нормализации, а организатору не приходится
+  // угадывать «правильный» формат.
   instagram: z.string().trim().max(200).optional().or(z.literal("")),
   telegram: z.string().trim().max(200).optional().or(z.literal("")),
+  tiktok: z.string().trim().max(200).optional().or(z.literal("")),
   email: optionalEmailSchema,
 });
 

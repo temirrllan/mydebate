@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
 import { prisma } from "@/lib/prisma";
 import { TournamentStatus } from "@/lib/enums";
+import { startOfToday } from "@/lib/format";
 
 const ADVANTAGES = [
   {
@@ -66,10 +67,15 @@ export default async function Home() {
   // Только опубликованные турниры, ближайшие по дате начала (spec: гости
   // видят лендинг, но каталог турниров и деталь турнира auth-gated — эти три
   // карточки на главной остаются публичными "витринными" данными).
+  //
+  // Отбор — тот же, что в каталоге (buildWhere в lib/tournaments/queries.ts):
+  // показываем турниры, на которые ещё можно подать заявку, и убираем их на
+  // следующий день после дедлайна регистрации. Иначе главная звала бы на
+  // турнир, куда с неё уже не записаться.
   const upcomingTournaments = await prisma.tournament.findMany({
     where: {
       status: TournamentStatus.PUBLISHED,
-      startDate: { gte: new Date() },
+      registrationDeadline: { gte: startOfToday() },
     },
     orderBy: { startDate: "asc" },
     take: 3,

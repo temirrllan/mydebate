@@ -68,6 +68,67 @@ export async function sendNotificationEmail(
 }
 
 /**
+ * Рассылка участникам от организатора турнира (lib/actions/announcements.ts):
+ * ссылка на WhatsApp-группу, объявление, напоминание об оплате.
+ *
+ * Отдельный шаблон, а не sendNotificationEmail: тот кладёт message в один
+ * абзац, и всё, ради чего рассылку и просили, ломается — переносы строк
+ * схлопываются, а ссылка на группу остаётся текстом, который надо выделять и
+ * копировать вручную. Здесь переносы сохраняются, а ссылки становятся
+ * кликабельными.
+ */
+export async function sendAnnouncementEmail(
+  to: string,
+  input: { tournamentTitle: string; organizerName: string; subject: string; message: string; link: string },
+): Promise<boolean> {
+  const url = `${baseUrl()}${input.link}`;
+
+  const html = layout(`
+    <p style="margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:${MUTED};">
+      Сообщение от организатора
+    </p>
+    <h1 style="margin:0 0 6px;font-size:20px;font-weight:800;color:${INK};">${escapeHtml(input.subject)}</h1>
+    <p style="margin:0 0 20px;font-size:13px;color:${MUTED};">
+      Турнир «${escapeHtml(input.tournamentTitle)}» · ${escapeHtml(input.organizerName)}
+    </p>
+    <div style="margin:0 0 24px;font-size:14px;line-height:1.6;color:${INK};">${richText(input.message)}</div>
+    <a href="${url}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:10px;">Открыть страницу турнира</a>
+  `);
+
+  const text = [
+    `Сообщение от организатора турнира «${input.tournamentTitle}»`,
+    "",
+    input.subject,
+    "",
+    input.message,
+    "",
+    url,
+  ].join("\n");
+
+  return sendEmail({
+    to,
+    subject: `${input.subject} — ${input.tournamentTitle}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Текст, написанный человеком, → безопасный HTML: сначала экранируем всё
+ * целиком, потом по уже экранированной строке размечаем переносы строк и
+ * ссылки. Порядок важен — линкуем только то, что заведомо не содержит
+ * активной разметки, поэтому вставить свой тег через текст сообщения нельзя.
+ */
+function richText(raw: string): string {
+  return escapeHtml(raw)
+    .replace(
+      /https?:\/\/[^\s<]+/g,
+      (url) => `<a href="${url}" style="color:${BRAND};">${url}</a>`,
+    )
+    .replace(/\n/g, "<br>");
+}
+
+/**
  * Письмо сброса пароля. Ссылка действует 1 час (см. requestPasswordReset).
  * Отправляем и HTML, и текстовую версию (для клиентов без HTML и антиспама).
  */

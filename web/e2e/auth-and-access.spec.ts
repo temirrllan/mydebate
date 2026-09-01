@@ -26,7 +26,10 @@ test.describe("гость", () => {
 
   test("открывает страницу турнира, но регистрация уводит на вход", async ({ page }) => {
     await page.goto("/tournaments");
-    const firstCard = page.getByRole("link", { name: "Подробнее" }).first();
+    // Кликаем по заголовку карточки: он и есть ссылка, растянутая на всю
+    // карточку (см. TournamentCard). Дублирующая кнопка «Подробнее» скрыта от
+    // скринридера и от Playwright — ровно одна ссылка на турнир в карточке.
+    const firstCard = page.locator("h3 a").first();
     await firstCard.click();
     await expect(page).toHaveURL(/\/tournaments\/[^/]+$/);
 

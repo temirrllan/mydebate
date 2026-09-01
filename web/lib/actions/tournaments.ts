@@ -48,7 +48,7 @@ const GENERIC_ERROR = "Что-то пошло не так. Попробуйте 
  *  - обычные текстовые/числовые/date-поля — по имени напрямую (title,
  *    format, locationType, level, city, address, venue, startDate, endDate,
  *    registrationDeadline, price, description, coverImage, logoImage,
- *    registrationType, externalUrl, instagram, telegram, email);
+ *    registrationType, externalUrl, instagram, telegram, tiktok, email);
  *  - languages — несколько полей с одинаковым именем "languages"
  *    (formData.getAll), например чекбоксы языков;
  *  - sections — один текстовый filed "sectionsJson", JSON-строка вида
@@ -101,6 +101,7 @@ export async function createTournament(
     paymentRecipient: formData.get("paymentRecipient") ?? "",
     instagram: formData.get("instagram") ?? "",
     telegram: formData.get("telegram") ?? "",
+    tiktok: formData.get("tiktok") ?? "",
     email: formData.get("email") ?? "",
   };
 
@@ -149,6 +150,7 @@ export async function createTournament(
           data.registrationType === RegistrationType.PLATFORM ? data.paymentRecipient || null : null,
         instagram: data.instagram || null,
         telegram: data.telegram || null,
+        tiktok: data.tiktok || null,
         email: data.email || null,
         organizerId: user.id,
         sections: {
@@ -315,6 +317,7 @@ export async function editTournament(
     paymentRecipient: formData.get("paymentRecipient") ?? "",
     instagram: formData.get("instagram") ?? "",
     telegram: formData.get("telegram") ?? "",
+    tiktok: formData.get("tiktok") ?? "",
     email: formData.get("email") ?? "",
   };
 
@@ -363,6 +366,7 @@ export async function editTournament(
               : null,
           instagram: data.instagram || null,
           telegram: data.telegram || null,
+          tiktok: data.tiktok || null,
           email: data.email || null,
           // status НЕ трогаем — без повторной модерации.
           sections: {

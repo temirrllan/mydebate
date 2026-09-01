@@ -34,6 +34,7 @@ export type WizardValues = {
   paymentRecipient: string;
   instagram: string;
   telegram: string;
+  tiktok: string;
   email: string;
 };
 
@@ -61,6 +62,7 @@ export const INITIAL_WIZARD_VALUES: WizardValues = {
   paymentRecipient: "",
   instagram: "",
   telegram: "",
+  tiktok: "",
   email: "",
 };
 
@@ -98,6 +100,7 @@ const STEP_FIELDS: Record<number, (keyof WizardValues)[]> = {
     "paymentRecipient",
     "instagram",
     "telegram",
+    "tiktok",
     "email",
   ],
 };

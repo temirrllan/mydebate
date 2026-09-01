@@ -51,6 +51,7 @@ function buildInitialValues(t: TournamentEditData): WizardValues {
     paymentRecipient: t.paymentRecipient ?? "",
     instagram: t.instagram ?? "",
     telegram: t.telegram ?? "",
+    tiktok: t.tiktok ?? "",
     email: t.email ?? "",
   };
 }
@@ -132,6 +133,7 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
       paymentRecipient: values.paymentRecipient,
       instagram: values.instagram,
       telegram: values.telegram,
+      tiktok: values.tiktok,
       email: values.email,
     });
 
@@ -172,6 +174,7 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
     fd.set("paymentRecipient", values.paymentRecipient);
     fd.set("instagram", values.instagram);
     fd.set("telegram", values.telegram);
+    fd.set("tiktok", values.tiktok);
     fd.set("email", values.email);
     startTransition(() => formAction(fd));
   }

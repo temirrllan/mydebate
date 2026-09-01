@@ -179,6 +179,11 @@ model Tournament {
 
   instagram String?
   telegram  String?
+  // Ссылка на TikTok турнира. Как и instagram/telegram, хранится ровно тем
+  // текстом, который ввёл организатор («@mydebate», «tiktok.com/@mydebate»,
+  // полный URL) — в рабочий адрес это превращает normalizeSocialUrl из
+  // lib/social.ts на выводе, чтобы чинились и уже сохранённые записи.
+  tiktok    String?
   email     String?
 
   rejectionReason String? // причина отклонения модерацией

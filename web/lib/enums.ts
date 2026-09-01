@@ -98,6 +98,10 @@ export const NotificationType = {
   // /tournaments/[id]/participants (принял / отклонил / лист ожидания /
   // подтвердил) — lib/actions/registrations.ts setRegistrationStatus.
   REGISTRATION_STATUS_CHANGED: "REGISTRATION_STATUS_CHANGED",
+  // Участникам турнира — рассылка от организатора (ссылка на WhatsApp-группу,
+  // объявление, напоминание). Отправляется вручную со страницы
+  // /tournaments/[id]/participants, см. lib/actions/announcements.ts.
+  TOURNAMENT_ANNOUNCEMENT: "TOURNAMENT_ANNOUNCEMENT",
   // Пользователю, когда админ вручную меняет его роль (админ-панель,
   // lib/actions/admin.ts setUserRole) — не путать с авто-повышением до
   // ORGANIZER после первого одобренного турнира (там TOURNAMENT_PUBLISHED).

@@ -65,7 +65,11 @@ export default async function TournamentParticipantsPage({
       </div>
 
       <div className="mt-8">
-        <ParticipantsManager tournamentId={tournament.id} participants={participants} />
+        <ParticipantsManager
+          tournamentId={tournament.id}
+          tournamentTitle={tournament.title}
+          participants={participants}
+        />
       </div>
     </Container>
   );

@@ -67,16 +67,22 @@ function buildWhere(params: TournamentListParams): Prisma.TournamentWhereInput {
 
   const and: Prisma.TournamentWhereInput[] = [];
 
-  // Каталог — витрина предстоящих событий: турнир исчезает из него на
-  // следующий день после окончания (endDate, а для однодневных — startDate).
-  // Иначе прошедшие турниры не только засоряют список, но и при сортировке
-  // «Сначала ближайшие» (startDate asc) оказываются в самом верху.
-  // История участия пользователя строится отдельными запросами
-  // (lib/profile/queries.ts) и этот фильтр не затрагивает.
-  const today = startOfToday();
-  and.push({
-    OR: [{ endDate: { gte: today } }, { endDate: null, startDate: { gte: today } }],
-  });
+  // Каталог — витрина событий, на которые ЕЩЁ МОЖНО попасть: турнир уходит
+  // из списка на следующий день после дедлайна регистрации (по просьбе
+  // организаторов — раньше он висел до конца самого турнира и собирал заходы
+  // людей, которые уже никак не успевали подать заявку).
+  //
+  // Граница — та же, что у isRegistrationOpen: весь день дедлайна турнир ещё
+  // в каталоге и регистрация ещё открыта. Дедлайн по схеме не позже даты
+  // начала, так что отдельная проверка «турнир не прошёл» больше не нужна —
+  // эта строже.
+  //
+  // Скрывается ТОЛЬКО каталог. Сама страница турнира, список участников и
+  // вкладка «Мои турниры» организатора работают как раньше: они строятся
+  // другими запросами (getTournamentDetail, listMyTournaments,
+  // listTournamentParticipants), и этот фильтр их не затрагивает — как и
+  // историю участия пользователя (lib/profile/queries.ts).
+  and.push({ registrationDeadline: { gte: startOfToday() } });
 
   if (params.format) and.push({ format: params.format });
   if (params.locationType) and.push({ locationType: params.locationType });
@@ -166,7 +172,13 @@ export async function listTournaments(
 /** Города для наполнения фильтра — distinct city среди PUBLISHED турниров. */
 export async function getAvailableCities(): Promise<string[]> {
   const rows = await prisma.tournament.findMany({
-    where: { status: TournamentStatus.PUBLISHED, city: { not: null } },
+    // Тот же срез, что и в buildWhere: город турнира с прошедшим дедлайном в
+    // фильтре не нужен — по нему всё равно ничего не найдётся.
+    where: {
+      status: TournamentStatus.PUBLISHED,
+      registrationDeadline: { gte: startOfToday() },
+      city: { not: null },
+    },
     select: { city: true },
     distinct: ["city"],
     orderBy: { city: "asc" },
@@ -202,6 +214,7 @@ export type TournamentDetail = {
   paymentRecipient: string | null;
   instagram: string | null;
   telegram: string | null;
+  tiktok: string | null;
   email: string | null;
   organizerId: string;
   createdAt: Date;
@@ -301,6 +314,7 @@ export async function getTournamentDetail(id: string): Promise<TournamentDetail 
       paymentRecipient: true,
       instagram: true,
       telegram: true,
+      tiktok: true,
       email: true,
       organizerId: true,
       createdAt: true,
@@ -348,6 +362,7 @@ export type TournamentEditData = {
   paymentRecipient: string | null;
   instagram: string | null;
   telegram: string | null;
+  tiktok: string | null;
   email: string | null;
   organizerId: string;
   sections: { id: string; title: string; description: string; order: number }[];
@@ -394,6 +409,7 @@ export async function getTournamentForEdit(
       paymentRecipient: true,
       instagram: true,
       telegram: true,
+      tiktok: true,
       email: true,
       organizerId: true,
       sections: {

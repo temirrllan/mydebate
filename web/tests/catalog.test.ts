@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { Role, TournamentStatus, TournamentFormat } from "@/lib/enums";
-import { listTournaments } from "@/lib/tournaments/queries";
+import { getAvailableCities, listTournaments } from "@/lib/tournaments/queries";
 import { createTournament, createUser, resetDb } from "./helpers/fixtures";
 
 async function titles(params: Parameters<typeof listTournaments>[0] = {}) {
@@ -44,7 +44,9 @@ describe("каталог турниров", () => {
     expect(await titles()).toEqual(["Опубликован"]);
   });
 
-  it("не показывает уже прошедшие турниры", async () => {
+  // Каталог — витрина событий, на которые ещё можно попасть: после дедлайна
+  // регистрации турнир уходит из списка, даже если сам он ещё впереди.
+  it("убирает турниры с прошедшим дедлайном регистрации", async () => {
     await createTournament({
       organizerId: organizer.id,
       title: "Прошлогодний",
@@ -53,9 +55,18 @@ describe("каталог турниров", () => {
     });
     await createTournament({
       organizerId: organizer.id,
-      title: "Сегодняшний",
-      startsInDays: 0,
-      deadlineInDays: -2,
+      // Турнир ещё впереди, но заявки уже не принимает — в каталоге ему не место.
+      title: "Регистрация закрылась вчера",
+      startsInDays: 10,
+      deadlineInDays: -1,
+    });
+    await createTournament({
+      organizerId: organizer.id,
+      // Весь день дедлайна регистрация ещё открыта (см. isRegistrationOpen),
+      // значит и в каталоге турнир остаётся.
+      title: "Дедлайн сегодня",
+      startsInDays: 10,
+      deadlineInDays: 0,
     });
     await createTournament({
       organizerId: organizer.id,
@@ -65,9 +76,27 @@ describe("каталог турниров", () => {
 
     const found = await titles();
 
-    // Прошедший ушёл, сегодняшний ещё виден (турнир идёт прямо сейчас).
     expect(found).not.toContain("Прошлогодний");
-    expect(found).toEqual(expect.arrayContaining(["Сегодняшний", "Будущий"]));
+    expect(found).not.toContain("Регистрация закрылась вчера");
+    expect(found).toEqual(expect.arrayContaining(["Дедлайн сегодня", "Будущий"]));
+  });
+
+  it("не предлагает в фильтре города турниров с закрытой регистрацией", async () => {
+    await createTournament({
+      organizerId: organizer.id,
+      title: "Открыт",
+      city: "Алматы",
+      deadlineInDays: 5,
+    });
+    await createTournament({
+      organizerId: organizer.id,
+      title: "Закрыт",
+      city: "Шымкент",
+      startsInDays: 10,
+      deadlineInDays: -1,
+    });
+
+    expect(await getAvailableCities()).toEqual(["Алматы"]);
   });
 
   it("сортировка «сначала ближайшие» ставит ближайший турнир первым", async () => {

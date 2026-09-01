@@ -16,7 +16,7 @@ import {
   Trophy,
   ExternalLink,
 } from "lucide-react";
-import { InstagramIcon, TelegramIcon } from "@/components/icons/social";
+import { InstagramIcon, TelegramIcon, TikTokIcon } from "@/components/icons/social";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,7 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { absoluteUrl } from "@/lib/site";
+import { normalizeSocialUrl } from "@/lib/social";
 
 /** Аннотация для поиска и превью: первые ~160 символов описания одной строкой. */
 function buildDescription(tournament: { description: string; city: string | null; startDate: Date }): string {
@@ -111,6 +112,32 @@ export default async function TournamentDetailPage({
   // /tournaments/[id]/register (внутренняя форма для таких турниров вообще
   // недоступна, см. guard в register/page.tsx).
   const isExternal = tournament.registrationType === RegistrationType.EXTERNAL && Boolean(tournament.externalUrl);
+
+  // Соцсети организатор вводит как придётся («@mydebate», «tiktok.com/
+  // @mydebate», полная ссылка) — в href нужен абсолютный https-адрес, иначе
+  // браузер считает значение путём внутри сайта и открывает 404 вместо
+  // профиля. normalizeSocialUrl вернёт null для мусора и чужих протоколов —
+  // такую иконку просто не рисуем.
+  const socialLinks = [
+    {
+      key: "instagram",
+      href: normalizeSocialUrl(tournament.instagram, "instagram"),
+      label: "Instagram организатора",
+      Icon: InstagramIcon,
+    },
+    {
+      key: "tiktok",
+      href: normalizeSocialUrl(tournament.tiktok, "tiktok"),
+      label: "TikTok организатора",
+      Icon: TikTokIcon,
+    },
+    {
+      key: "telegram",
+      href: normalizeSocialUrl(tournament.telegram, "telegram"),
+      label: "Telegram организатора",
+      Icon: TelegramIcon,
+    },
+  ].filter((link): link is typeof link & { href: string } => Boolean(link.href));
 
   // Разметка события по schema.org. Обычный текст страницы поисковик читает
   // как текст, а отсюда достаёт факты однозначно: когда, где, почём. Благодаря
@@ -341,35 +368,25 @@ export default async function TournamentDetailPage({
               />
             </dl>
 
-            {(tournament.instagram || tournament.telegram || tournament.email) && (
+            {(socialLinks.length > 0 || tournament.email) && (
               <div className="mt-5 flex gap-2 border-t border-line pt-5">
-                {tournament.instagram && (
+                {socialLinks.map(({ key, href, label, Icon }) => (
                   <a
-                    href={tournament.instagram}
+                    key={key}
+                    href={href}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label="Instagram организатора"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100"
+                    aria-label={label}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 transition-colors hover:bg-brand-100"
                   >
-                    <InstagramIcon width={16} height={16} />
+                    <Icon width={16} height={16} />
                   </a>
-                )}
-                {tournament.telegram && (
-                  <a
-                    href={tournament.telegram}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Telegram организатора"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100"
-                  >
-                    <TelegramIcon width={16} height={16} />
-                  </a>
-                )}
+                ))}
                 {tournament.email && (
                   <a
                     href={`mailto:${tournament.email}`}
                     aria-label="Написать организатору"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 transition-colors hover:bg-brand-100"
                   >
                     <MailIcon size={16} />
                   </a>
