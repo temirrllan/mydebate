@@ -18,7 +18,10 @@ const PUBLIC_ORIGIN = "https://mydebate.kz";
 
 // Параметр объявлен явно: без него vi.fn выводит тип «функция без
 // аргументов», и mock.calls[0][0] не проходит проверку типов.
-const handleI18n = vi.fn((_req: NextRequest) => NextResponse.next());
+const handleI18n = vi.fn((req: NextRequest) => {
+  void req;
+  return NextResponse.next();
+});
 
 vi.mock("next-intl/middleware", () => ({
   default: () => handleI18n,

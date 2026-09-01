@@ -10,7 +10,7 @@ import { Footer } from "@/components/layout/footer";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getUnreadNotificationCount } from "@/lib/profile/queries";
 import { SITE_URL } from "@/lib/site";
-import { routing } from "@/i18n/routing";
+import { isSearchIndexed, routing } from "@/i18n/routing";
 import { localeAlternates } from "@/lib/i18n/alternates";
 
 const inter = Inter({
@@ -69,6 +69,11 @@ export async function generateMetadata({
     // hreflang: говорит поисковику, что три адреса — один документ на разных
     // языках, а не три страницы-дубля.
     alternates: localeAlternates("/", locale),
+    // Языки, перевод которых ещё не закончен, закрыты от индексации — см.
+    // SEARCH_INDEXED_LOCALES в i18n/routing.ts. Задано в корневом layout,
+    // поэтому действует на все страницы этой локали; follow оставляем, чтобы
+    // робот всё-таки обошёл сайт по ссылкам и знал о его структуре.
+    robots: isSearchIndexed(locale) ? undefined : { index: false, follow: true },
     // Превью при отправке ссылки в WhatsApp, Telegram и соцсети. Без него
     // вместо карточки будет голый адрес.
     openGraph: {

@@ -35,6 +35,30 @@ export const LOCALE_SHORT_LABEL: Record<Locale, string> = {
   en: "EN",
 };
 
+/**
+ * Локали, открытые поисковику. Остальные отдаются с `noindex`.
+ *
+ * Пока переведена только витрина (главная, каталог, карточка турнира, шапка и
+ * подвал), а кабинет, формы и админка на казахском и английском показывают
+ * русский текст. Пускать такие страницы в индекс вредно: поисковик оценивает
+ * качество по тому, что видит, а посетитель из выдачи попадает на страницу,
+ * наполовину на чужом языке.
+ *
+ * ЧТО СДЕЛАТЬ, КОГДА ПЕРЕВОД БУДЕТ ГОТОВ: вернуть сюда "kk" и "en" — этого
+ * достаточно. От одного списка зависят и мета-тег robots, и hreflang, и
+ * alternates в sitemap.xml.
+ *
+ * Закрываем именно мета-тегом, а не Disallow в robots.txt: запрет в robots
+ * запрещает СКАЧИВАТЬ страницу, но не запрещает её индексировать — адрес,
+ * найденный по внешней ссылке, попадёт в выдачу пустой карточкой, и снять его
+ * будет нечем, потому что noindex внутри робот прочитать не сможет.
+ */
+export const SEARCH_INDEXED_LOCALES: readonly Locale[] = ["ru"];
+
+export function isSearchIndexed(locale: Locale): boolean {
+  return SEARCH_INDEXED_LOCALES.includes(locale);
+}
+
 export const routing = defineRouting({
   locales: LOCALES,
   defaultLocale: "ru",
@@ -50,7 +74,11 @@ export const routing = defineRouting({
 
   // Заголовок Link: rel="alternate" hreflang для каждой локали — так Google
   // понимает, что три адреса это один документ на разных языках, а не дубли.
-  alternateLinks: true,
+  //
+  // Пока открыт один язык, заголовок выключен: он звал бы робота на /kk и
+  // /en, которые мы тут же закрываем через noindex. Включится сам, когда в
+  // SEARCH_INDEXED_LOCALES вернутся остальные языки.
+  alternateLinks: SEARCH_INDEXED_LOCALES.length > 1,
 
   // Автоопределение языка по Accept-Language и cookie ВЫКЛЮЧЕНО намеренно.
   //

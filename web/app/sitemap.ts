@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { TournamentStatus } from "@/lib/enums";
 import { absoluteUrl } from "@/lib/site";
-import { LOCALES, routing } from "@/i18n/routing";
+import { SEARCH_INDEXED_LOCALES, routing } from "@/i18n/routing";
 import { localePath } from "@/lib/i18n/alternates";
 
 /**
@@ -53,11 +53,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] Не удалось получить список турниров:", error);
   }
 
-  /** Адреса страницы на всех языках — для блока <xhtml:link rel="alternate">. */
-  function languages(path: string): Record<string, string> {
-    return Object.fromEntries(
-      LOCALES.map((locale) => [locale, absoluteUrl(localePath(locale, path))]),
-    );
+  /**
+   * Адреса страницы на языках, открытых поисковику. Языки, закрытые noindex
+   * (см. SEARCH_INDEXED_LOCALES), в карту сайта не попадают: звать на них
+   * робота и тут же запрещать индексацию — противоречие.
+   */
+  function alternatesFor(path: string) {
+    if (SEARCH_INDEXED_LOCALES.length < 2) return undefined;
+    return {
+      languages: Object.fromEntries(
+        SEARCH_INDEXED_LOCALES.map((locale) => [
+          locale,
+          absoluteUrl(localePath(locale, path)),
+        ]),
+      ),
+    };
   }
 
   return [
@@ -66,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: page.changeFrequency,
       priority: page.priority,
-      alternates: { languages: languages(page.path) },
+      alternates: alternatesFor(page.path),
     })),
     ...tournaments.map((tournament) => {
       const path = `/tournaments/${tournament.id}`;
@@ -75,7 +85,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: tournament.updatedAt,
         changeFrequency: "weekly" as const,
         priority: 0.8,
-        alternates: { languages: languages(path) },
+        alternates: alternatesFor(path),
       };
     }),
   ];

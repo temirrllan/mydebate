@@ -74,11 +74,31 @@ test.describe("три языка", () => {
     expect(body).toContain("Disallow: /en/profile");
   });
 
-  test("страница объявляет свои версии на других языках (hreflang)", async ({ page }) => {
+  // Пока переведена только витрина, казахская и английская версии закрыты от
+  // индексации (SEARCH_INDEXED_LOCALES в i18n/routing.ts). Иначе посетитель
+  // из выдачи попадал бы на страницу, наполовину на чужом языке.
+  test("непереведённые локали закрыты от индексации, русская — открыта", async ({ page }) => {
     await page.goto("/");
+    await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 
-    const alternates = page.locator('link[rel="alternate"][hreflang]');
-    await expect(alternates).toHaveCount(4); // ru, kk, en + x-default
-    await expect(page.locator('link[hreflang="kk"]')).toHaveAttribute("href", /\/kk$/);
+    for (const path of ["/kk", "/en", "/kk/tournaments"]) {
+      await page.goto(path);
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        /noindex/,
+      );
+    }
+  });
+
+  test("hreflang не зовёт робота на закрытые локали", async ({ page, request }) => {
+    // Противоречие «зовём и тут же запрещаем» ломает доверие к разметке:
+    // hreflang должен появиться только вместе с открытием языков.
+    await page.goto("/");
+    await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(0);
+
+    // next-intl умеет отдавать hreflang ещё и HTTP-заголовком Link — его тоже
+    // быть не должно.
+    const res = await request.get("/");
+    expect(res.headers()["link"] ?? "").not.toContain("hreflang");
   });
 });

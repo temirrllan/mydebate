@@ -5,7 +5,7 @@
 // это дубли: в выдачу попадает одна, остальные отбрасываются. hreflang
 // объясняет, что это один документ на трёх языках, и каждому пользователю
 // показывается версия на его языке.
-import { LOCALES, routing, type Locale } from "@/i18n/routing";
+import { SEARCH_INDEXED_LOCALES, routing, type Locale } from "@/i18n/routing";
 
 /**
  * Адрес страницы в заданной локали с учётом localePrefix: "as-needed" —
@@ -26,11 +26,19 @@ export function localePath(locale: Locale, pathname: string): string {
  * указываем на русскую как на основную.
  */
 export function localeAlternates(pathname: string, currentLocale: Locale) {
+  const canonical = localePath(currentLocale, pathname);
+
+  // hreflang перечисляет только те языки, которые открыты поисковику
+  // (SEARCH_INDEXED_LOCALES). Указывать в нём версию, закрытую noindex, —
+  // противоречие: мы одновременно зовём робота на страницу и запрещаем её
+  // индексировать. Пока язык один, связка hreflang не нужна вовсе.
+  if (SEARCH_INDEXED_LOCALES.length < 2) return { canonical };
+
   const languages: Record<string, string> = {};
-  for (const locale of LOCALES) {
+  for (const locale of SEARCH_INDEXED_LOCALES) {
     languages[locale] = localePath(locale, pathname);
   }
   languages["x-default"] = localePath(routing.defaultLocale, pathname);
 
-  return { canonical: localePath(currentLocale, pathname), languages };
+  return { canonical, languages };
 }
