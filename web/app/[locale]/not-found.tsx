@@ -3,6 +3,7 @@ import { Compass } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Брендированная 404 для любого неизвестного маршрута (Next.js рендерит
@@ -10,16 +11,17 @@ import { Button } from "@/components/ui/button";
  * путать с app/tournaments/[id]/not-found.tsx — тот специфичен для
  * турниров, этот покрывает весь остальной сайт.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations("errors");
   return (
     <Container className="py-20">
       <EmptyState
         icon={Compass}
-        title="Страница не найдена"
-        description="Возможно, ссылка устарела или страница была перемещена. Проверьте адрес или вернитесь на главную."
+        title={t("notFoundTitle")}
+        description={t("notFoundText")}
         action={
           <Button asChild>
-            <Link href="/">На главную</Link>
+            <Link href="/">{t("toHome")}</Link>
           </Button>
         }
       />

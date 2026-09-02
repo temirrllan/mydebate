@@ -196,7 +196,8 @@
     "label": "Выбор даты",
     "prevMonth": "Предыдущий месяц",
     "nextMonth": "Следующий месяц",
-    "today": "Сегодня"
+    "today": "Сегодня",
+    "close": "Закрыть"
   },
   "auth": {
     "emailLabel": "Email",
@@ -687,7 +688,8 @@
     "instagram": "Instagram",
     "tiktok": "TikTok",
     "telegram": "Telegram",
-    "contactsHint": "Ник можно писать как угодно — «@mydebate», «mydebate» или полной ссылкой."
+    "contactsHint": "Ник можно писать как угодно — «@mydebate», «mydebate» или полной ссылкой.",
+    "recipientPlaceholder": "Иванов Иван Иванович"
   },
   "participants": {
     "metaTitle": "Участники · {title}",
@@ -868,5 +870,19 @@
     "responsePlaceholder": "Напишите ответ пользователю…",
     "sendResponse": "Отправить ответ",
     "responseRequired": "Введите текст ответа"
+  },
+  "errors": {
+    "forbiddenMeta": "Доступ запрещён",
+    "forbiddenTitle": "Доступ запрещён",
+    "forbiddenText": "У вас недостаточно прав для просмотра этой страницы. Если это ошибка — обратитесь в поддержку.",
+    "toHome": "На главную",
+    "errorTitle": "Не удалось загрузить данные.",
+    "errorText": "Что-то пошло не так. Попробуйте обновить страницу — если проблема повторится, вернитесь на главную.",
+    "retry": "Попробовать снова",
+    "notFoundTitle": "Страница не найдена",
+    "notFoundText": "Возможно, ссылка устарела или страница была перемещена. Проверьте адрес или вернитесь на главную.",
+    "tournamentNotFound": "Турнир не найден",
+    "tournamentNotFoundText": "Возможно, он был удалён, скрыт или ещё не опубликован организатором.",
+    "toTournaments": "Ко всем турнирам"
   }
 }

@@ -3,18 +3,20 @@ import { SearchX } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { getTranslations } from "next-intl/server";
 
 /** Турнир не найден / не опубликован — не различаем причину для пользователя. */
-export default function TournamentNotFound() {
+export default async function TournamentNotFound() {
+  const t = await getTranslations("errors");
   return (
     <Container className="py-20">
       <EmptyState
         icon={SearchX}
-        title="Турнир не найден"
-        description="Возможно, он был удалён, скрыт или ещё не опубликован организатором."
+        title={t("tournamentNotFound")}
+        description={t("tournamentNotFoundText")}
         action={
           <Button asChild>
-            <Link href="/tournaments">Ко всем турнирам</Link>
+            <Link href="/tournaments">{t("toTournaments")}</Link>
           </Button>
         }
       />

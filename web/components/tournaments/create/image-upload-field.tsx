@@ -5,6 +5,7 @@ import Image from "next/image";
 import { UploadCloud, X, Loader2 } from "lucide-react";
 import { FieldError } from "@/components/auth/field-error";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * Загрузка изображения (обложка/логотип турнира), шаг 2 мастера. Грузит
@@ -30,6 +31,7 @@ export function ImageUploadField({
   hint?: string;
   errors?: string[];
 }) {
+  const t = useTranslations("createTournament");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -44,12 +46,12 @@ export function ImageUploadField({
       const res = await fetch("/api/uploads/tournament-image", { method: "POST", body: fd });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
-        setError(data.error ?? "Не удалось загрузить файл. Попробуйте позже.");
+        setError(data.error ?? t("uploadFailed"));
         return;
       }
       onChange(data.url);
     } catch {
-      setError("Не удалось загрузить файл. Проверьте соединение с интернетом.");
+      setError(t("uploadNetworkFailed"));
     } finally {
       setUploading(false);
     }
@@ -74,7 +76,7 @@ export function ImageUploadField({
                 if (inputRef.current) inputRef.current.value = "";
               }}
               className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-navy-900/70 text-white transition-colors hover:bg-navy-900"
-              aria-label={`Удалить изображение: ${label}`}
+              aria-label={t("imageRemove", { label })}
             >
               <X size={14} />
             </button>
@@ -91,12 +93,12 @@ export function ImageUploadField({
             {uploading ? (
               <>
                 <Loader2 size={20} className="animate-spin text-brand-600" />
-                Загрузка…
+                {t("uploading")}
               </>
             ) : (
               <>
                 <UploadCloud size={20} />
-                Загрузить изображение
+                {t("uploadImage")}
               </>
             )}
             <input

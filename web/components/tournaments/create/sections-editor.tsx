@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/auth/field-error";
 import type { WizardSection } from "./types";
+import { useTranslations } from "next-intl";
 
 const MAX_SECTIONS = 20;
 
@@ -21,6 +22,7 @@ export function SectionsEditor({
    * поэтому показываем как общее предупреждение под списком, а не адресно. */
   errors?: string[];
 }) {
+  const t = useTranslations("createTournament");
   function update(index: number, patch: Partial<WizardSection>) {
     onChange(sections.map((s, i) => (i === index ? { ...s, ...patch } : s)));
   }
@@ -38,7 +40,7 @@ export function SectionsEditor({
     <div>
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-ink">
-          Разделы турнира <span className="text-muted">(необязательно)</span>
+          {t("sections")} <span className="text-muted">{t("optional")}</span>
         </label>
         <span className="text-xs text-muted">
           {sections.length}/{MAX_SECTIONS}
@@ -48,8 +50,7 @@ export function SectionsEditor({
       {sections.length === 0 ? (
         <div className="mt-2 flex flex-col items-center gap-2 rounded-[var(--radius-btn)] border border-dashed border-line bg-canvas px-4 py-6 text-center text-sm text-muted">
           <Layers size={20} />
-          Разделы помогают структурировать программу турнира (например «Комитеты» для MUN или
-          «Регламент» для дебатов).
+          {t("sectionsHint")}
         </div>
       ) : (
         <div className="mt-2 space-y-4">
@@ -59,26 +60,26 @@ export function SectionsEditor({
                 <div className="flex-1 space-y-3">
                   <div>
                     <label htmlFor={`section-title-${index}`} className="text-xs font-medium text-muted">
-                      Заголовок раздела
+                      {t("sectionTitle")}
                     </label>
                     <Input
                       id={`section-title-${index}`}
                       value={section.title}
                       onChange={(e) => update(index, { title: e.target.value })}
-                      placeholder="Например: Регламент турнира"
+                      placeholder={t("sectionTitlePlaceholder")}
                       className="mt-1"
                     />
                   </div>
                   <div>
                     <label htmlFor={`section-description-${index}`} className="text-xs font-medium text-muted">
-                      Описание раздела
+                      {t("sectionDescription")}
                     </label>
                     <textarea
                       id={`section-description-${index}`}
                       value={section.description}
                       onChange={(e) => update(index, { description: e.target.value })}
                       rows={3}
-                      placeholder="Опишите этот раздел подробнее"
+                      placeholder={t("sectionDescriptionPlaceholder")}
                       className="mt-1 w-full rounded-[var(--radius-btn)] border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                     />
                   </div>
@@ -87,7 +88,7 @@ export function SectionsEditor({
                   type="button"
                   onClick={() => remove(index)}
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-rose-50 hover:text-rose-600"
-                  aria-label="Удалить раздел"
+                  aria-label={t("sectionRemove")}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -99,7 +100,7 @@ export function SectionsEditor({
 
       <div className="mt-3 flex items-center gap-3">
         <Button type="button" variant="outline" size="sm" onClick={add} disabled={sections.length >= MAX_SECTIONS}>
-          <Plus size={16} /> Добавить раздел
+          <Plus size={16} /> {t("sectionAdd")}
         </Button>
       </div>
       <FieldError messages={errors} />

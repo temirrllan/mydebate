@@ -389,7 +389,7 @@ export function DatePicker({
               onClick={() => setOpen(false)}
               className="rounded-md px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-canvas hover:text-ink"
             >
-              Закрыть
+              {t("close")}
             </button>
           </div>
         </div>

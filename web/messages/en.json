@@ -196,7 +196,8 @@
     "label": "Pick a date",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
-    "today": "Today"
+    "today": "Today",
+    "close": "Close"
   },
   "auth": {
     "emailLabel": "Email",
@@ -687,7 +688,8 @@
     "instagram": "Instagram",
     "tiktok": "TikTok",
     "telegram": "Telegram",
-    "contactsHint": "Write the handle however you like — “@mydebate”, “mydebate” or a full link."
+    "contactsHint": "Write the handle however you like — “@mydebate”, “mydebate” or a full link.",
+    "recipientPlaceholder": "Ivanov Ivan Ivanovich"
   },
   "participants": {
     "metaTitle": "Participants · {title}",
@@ -868,5 +870,19 @@
     "responsePlaceholder": "Write your reply to the user…",
     "sendResponse": "Send reply",
     "responseRequired": "Enter the reply text"
+  },
+  "errors": {
+    "forbiddenMeta": "Access denied",
+    "forbiddenTitle": "Access denied",
+    "forbiddenText": "You don't have permission to view this page. If that seems wrong, contact support.",
+    "toHome": "Go to the homepage",
+    "errorTitle": "Could not load the data.",
+    "errorText": "Something went wrong. Try refreshing the page — if it keeps happening, go back to the homepage.",
+    "retry": "Try again",
+    "notFoundTitle": "Page not found",
+    "notFoundText": "The link may be out of date or the page may have moved. Check the address or return to the homepage.",
+    "tournamentNotFound": "Tournament not found",
+    "tournamentNotFoundText": "It may have been deleted, hidden, or not yet published by the organiser.",
+    "toTournaments": "All tournaments"
   }
 }

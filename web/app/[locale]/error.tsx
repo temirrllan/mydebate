@@ -6,6 +6,7 @@ import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 /**
  * Корневой error boundary (Next требует "use client" для error.tsx).
@@ -20,6 +21,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("errors");
   useEffect(() => {
     console.error("[app/error]", error);
   }, [error]);
@@ -28,15 +30,15 @@ export default function GlobalError({
     <Container className="py-20">
       <EmptyState
         icon={AlertTriangle}
-        title="Не удалось загрузить данные."
-        description="Что-то пошло не так. Попробуйте обновить страницу — если проблема повторится, вернитесь на главную."
+        title={t("errorTitle")}
+        description={t("errorText")}
         action={
           <div className="flex flex-wrap justify-center gap-3">
             <Button onClick={() => reset()}>
-              <RotateCcw size={16} /> Попробовать снова
+              <RotateCcw size={16} /> {t("retry")}
             </Button>
             <Button asChild variant="outline">
-              <Link href="/">На главную</Link>
+              <Link href="/">{t("toHome")}</Link>
             </Button>
           </div>
         }

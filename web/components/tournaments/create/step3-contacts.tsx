@@ -137,7 +137,7 @@ export function Step3Contacts({
                 id="paymentRecipient"
                 value={values.paymentRecipient}
                 onChange={(e) => update("paymentRecipient", e.target.value)}
-                placeholder="Иванов Иван Иванович"
+                placeholder={t("recipientPlaceholder")}
                 className="mt-1.5"
                 invalid={Boolean(errors.paymentRecipient?.length)}
                 aria-invalid={Boolean(errors.paymentRecipient?.length)}

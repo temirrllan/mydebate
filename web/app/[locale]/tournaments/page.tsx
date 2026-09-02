@@ -46,6 +46,7 @@ export default async function TournamentsPage({
   // формы другие, и три параллельные функции разошлись бы при первой правке.
   const t = await getTranslations("catalog");
   const tNav = await getTranslations("nav");
+  const tContacts = await getTranslations("contacts");
 
   const params = await searchParams;
   const page = Number(params.page) > 0 ? Number(params.page) : 1;
@@ -181,7 +182,7 @@ export default async function TournamentsPage({
             variant="outline"
             className="border-white/30 bg-transparent text-white hover:border-white/60 hover:bg-white/10 hover:text-white"
           >
-            <Link href="/contacts">Связаться с нами</Link>
+            <Link href="/contacts">{tContacts("title")}</Link>
           </Button>
         </CtaBanner>
       </div>

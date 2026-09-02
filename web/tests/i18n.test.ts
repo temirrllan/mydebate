@@ -98,6 +98,7 @@ describe("словари переводов", () => {
         "participants.audienceStatus", // «{label} ({count})» — только плейсхолдеры
         "admin.navModeration", // «Модерация», «Телефон» — заимствования
         "admin.phone",
+        "createTournament.recipientPlaceholder", // пример ФИО, в казахском тот же
         // MUN и уровни (Beginner/Intermediate/Advanced) — устоявшиеся термины
         // дебатного сообщества, их не переводят ни на один из трёх языков.
         "enums.format.MUN",
