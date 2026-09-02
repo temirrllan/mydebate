@@ -41,11 +41,30 @@ docker builder prune -f >/dev/null 2>&1 || true
 df -h "$APP_DIR" | tail -1 | awk '{print "==> Свободно на диске: " $4 " (занято " $5 ")"}'
 
 echo "==> Подтягиваем изменения в $APP_DIR"
-git fetch --prune origin
+
+# Репозиторий публичный, поэтому забираем изменения АНОНИМНО, вычистив из
+# адреса remote возможные «user@» или «user:token@».
+#
+# Зачем: если в адресе прописан пользователь, git считает, что нужна
+# авторизация, и просит пароль. На сервере терминала нет — деплой падает с
+# «could not read Username for 'https://github.com'». Один раз так и вышло:
+# сборка прошла, образы уехали в GHCR, а сервер не смог сделать fetch.
+#
+# GIT_TERMINAL_PROMPT=0 — чтобы при любой другой проблеме с доступом деплой
+# падал сразу с внятной ошибкой, а не висел в ожидании ввода.
+REMOTE_URL="$(git remote get-url origin)"
+ANON_URL="$(printf '%s' "$REMOTE_URL" | sed -E 's#(https://)[^@/]*@#\1#')"
+
+if ! GIT_TERMINAL_PROMPT=0 git fetch --prune "$ANON_URL" main; then
+  echo "ОШИБКА: не удалось забрать изменения из $ANON_URL." >&2
+  echo "Проверьте на сервере: git -C $APP_DIR remote -v && git -C $APP_DIR fetch origin" >&2
+  exit 1
+fi
+
 # --ff-only, а не reset --hard: если на сервере оказались локальные правки или
 # ветка разъехалась, деплой должен упасть с внятной ошибкой, а не молча стереть
 # их. Разбираться в такой ситуации нужно руками.
-git merge --ff-only origin/main
+git merge --ff-only FETCH_HEAD
 
 # Какой образ разворачиваем. Workflow передаёт SHA коммита — так на сервере
 # видно, что именно запущено, и можно откатиться на предыдущий тег. Значение
