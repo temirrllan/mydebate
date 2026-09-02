@@ -28,6 +28,10 @@ async function findMunTournamentWithCommittees(page: Page): Promise<string | nul
 
   for (const href of hrefs) {
     await page.goto(href);
+    // Ждём отрисовки заголовка турнира: без этого isVisible() ниже может
+    // сработать по скелетону из loading.tsx, вернуть false и увести тест в
+    // skip — то есть проверка молча перестанет выполняться.
+    await page.waitForSelector("h1");
     if (await page.getByRole("heading", { name: "Комитеты" }).isVisible()) return href;
   }
   return null;

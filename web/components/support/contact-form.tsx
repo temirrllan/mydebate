@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, Send, User, Mail, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,8 @@ export function ContactForm({
   defaultName?: string;
   defaultEmail?: string;
 }) {
+  const t = useTranslations("support");
+  const tAuth = useTranslations("auth");
   const [state, formAction, pending] = useActionState(createSupportTicket, initialState);
   const [message, setMessage] = useState("");
 
@@ -41,7 +44,7 @@ export function ContactForm({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <CheckCircle2 size={30} />
         </div>
-        <h2 className="mt-5 text-xl font-bold text-navy-900">Спасибо за обращение!</h2>
+        <h2 className="mt-5 text-xl font-bold text-navy-900">{t("sentTitle")}</h2>
         <p className="mt-2 text-muted">{state.message}</p>
       </Card>
     );
@@ -49,10 +52,8 @@ export function ContactForm({
 
   return (
     <Card className="p-6 sm:p-8">
-      <h2 className="text-lg font-bold text-navy-900">Напишите нам</h2>
-      <p className="mt-1 text-sm text-muted">
-        Опишите вопрос или проблему — мы ответим на указанный вами email.
-      </p>
+      <h2 className="text-lg font-bold text-navy-900">{t("formTitle")}</h2>
+      <p className="mt-1 text-sm text-muted">{t("formHint")}</p>
 
       <form action={formAction} noValidate className="mt-6 space-y-5">
         {state?.message && !state.success && (
@@ -64,7 +65,7 @@ export function ContactForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="name" className="text-sm font-medium text-ink">
-              Имя <span className="text-muted">(необязательно)</span>
+              {t("name")} <span className="text-muted">{t("optional")}</span>
             </label>
             <div className="relative mt-1.5">
               <User size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -72,7 +73,7 @@ export function ContactForm({
                 id="name"
                 name="name"
                 defaultValue={defaultName}
-                placeholder="Введите ваше имя"
+                placeholder={t("namePlaceholder")}
                 className="pl-10"
                 invalid={Boolean(fieldErrors.name?.length)}
                 aria-invalid={Boolean(fieldErrors.name?.length)}
@@ -84,7 +85,7 @@ export function ContactForm({
 
           <div>
             <label htmlFor="email" className="text-sm font-medium text-ink">
-              Email <span className="text-rose-500">*</span>
+              {tAuth("emailLabel")} <span className="text-rose-500">*</span>
             </label>
             <div className="relative mt-1.5">
               <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -94,7 +95,7 @@ export function ContactForm({
                 type="email"
                 required
                 defaultValue={defaultEmail}
-                placeholder="example@mail.com"
+                placeholder={t("emailPlaceholder")}
                 className="pl-10"
                 invalid={Boolean(fieldErrors.email?.length)}
                 aria-invalid={Boolean(fieldErrors.email?.length)}
@@ -107,14 +108,14 @@ export function ContactForm({
 
         <div>
           <label htmlFor="subject" className="text-sm font-medium text-ink">
-            Тема <span className="text-rose-500">*</span>
+            {t("subject")} <span className="text-rose-500">*</span>
           </label>
           <div className="mt-1.5">
             <Input
               id="subject"
               name="subject"
               required
-              placeholder="Кратко опишите тему обращения"
+              placeholder={t("subjectPlaceholder")}
               invalid={Boolean(fieldErrors.subject?.length)}
               aria-invalid={Boolean(fieldErrors.subject?.length)}
               aria-describedby={fieldErrors.subject?.length ? "subject-error" : undefined}
@@ -125,7 +126,7 @@ export function ContactForm({
 
         <div>
           <label htmlFor="message" className="text-sm font-medium text-ink">
-            Сообщение <span className="text-rose-500">*</span>
+            {t("message")} <span className="text-rose-500">*</span>
           </label>
           <div className="relative mt-1.5">
             <MessageSquare
@@ -140,7 +141,7 @@ export function ContactForm({
               maxLength={3000}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Опишите ваш вопрос или проблему подробнее…"
+              placeholder={t("messagePlaceholder")}
               className="w-full rounded-[var(--radius-btn)] border border-line bg-white py-2.5 pl-10 pr-3.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
               aria-invalid={Boolean(fieldErrors.message?.length)}
               aria-describedby={fieldErrors.message?.length ? "message-error" : undefined}
@@ -151,17 +152,17 @@ export function ContactForm({
             <span
               className={`ml-auto text-xs ${message.trim().length < MIN_MESSAGE_LENGTH ? "text-muted" : "text-emerald-600"}`}
             >
-              {message.length}/{MIN_MESSAGE_LENGTH} минимум
+              {t("minChars", { count: message.length, min: MIN_MESSAGE_LENGTH })}
             </span>
           </div>
         </div>
 
         <Button type="submit" size="lg" className="w-full justify-center sm:w-auto" disabled={pending}>
           {pending ? (
-            "Отправляем…"
+            t("sending")
           ) : (
             <>
-              <Send size={18} /> Отправить сообщение
+              <Send size={18} /> {t("submit")}
             </>
           )}
         </Button>

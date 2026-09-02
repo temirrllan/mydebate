@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 export type BreadcrumbItem = { label: string; href?: string };
@@ -11,8 +12,10 @@ export function Breadcrumbs({
   items: BreadcrumbItem[];
   className?: string;
 }) {
+  const t = useTranslations("ui");
+
   return (
-    <nav aria-label="Хлебные крошки" className={cn("flex items-center gap-2 text-sm", className)}>
+    <nav aria-label={t("breadcrumbs")} className={cn("flex items-center gap-2 text-sm", className)}>
       {items.map((item, i) => (
         <span key={item.href ?? item.label} className="flex items-center gap-2">
           {i > 0 && (

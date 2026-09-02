@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,15 +20,17 @@ export function Pagination({
   buildHref: (page: number) => string;
   className?: string;
 }) {
+  const t = useTranslations("ui");
+
   if (totalPages <= 1) return null;
 
   const pages = buildPageList(page, totalPages);
 
   return (
-    <nav aria-label="Пагинация" className={cn("flex flex-wrap items-center justify-center gap-2", className)}>
+    <nav aria-label={t("pagination")} className={cn("flex flex-wrap items-center justify-center gap-2", className)}>
       <Link
         href={buildHref(Math.max(1, page - 1))}
-        aria-label="Предыдущая страница"
+        aria-label={t("prevPage")}
         aria-disabled={page === 1}
         tabIndex={page === 1 ? -1 : undefined}
         className={cn(
@@ -62,7 +65,7 @@ export function Pagination({
 
       <Link
         href={buildHref(Math.min(totalPages, page + 1))}
-        aria-label="Следующая страница"
+        aria-label={t("nextPage")}
         aria-disabled={page === totalPages}
         tabIndex={page === totalPages ? -1 : undefined}
         className={cn(

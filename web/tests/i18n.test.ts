@@ -85,6 +85,8 @@ describe("словари переводов", () => {
         "profile.tabOverview",
         "profile.phone", // «Телефон»
         "profile.cityPlaceholder", // «Астана» — имя собственное
+        "contacts.phone", // «Телефон»
+        "support.emailPlaceholder", // «example@mail.com» — не текст
         // MUN и уровни (Beginner/Intermediate/Advanced) — устоявшиеся термины
         // дебатного сообщества, их не переводят ни на один из трёх языков.
         "enums.format.MUN",

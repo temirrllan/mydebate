@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Headphones, Phone, Mail, Target, Landmark, Users } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
@@ -12,25 +13,22 @@ import { ContactForm } from "@/components/support/contact-form";
 import { getCurrentUser } from "@/lib/auth/session";
 import { SITE_CONTACTS } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Контакты" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "contacts" });
+  return { title: t("metaTitle") };
+}
 
+// Иконки и порядок — здесь, тексты — в словаре (namespace "contacts").
 const MINI_CARDS = [
-  {
-    icon: Target,
-    title: "Для участников",
-    description: "Находите турниры и MUN-конференции в одном месте.",
-  },
-  {
-    icon: Landmark,
-    title: "Для организаторов",
-    description: "Публикуйте мероприятия и привлекайте аудиторию.",
-  },
-  {
-    icon: Users,
-    title: "Для сообщества",
-    description: "Развивайте дебатную культуру и академические инициативы.",
-  },
-];
+  { icon: Target, key: "forParticipants" },
+  { icon: Landmark, key: "forOrganizers" },
+  { icon: Users, key: "forCommunity" },
+] as const;
 
 export default async function ContactsPage() {
   // Страница остаётся публичной (гость тоже может написать в поддержку,
@@ -38,24 +36,27 @@ export default async function ContactsPage() {
   // для преднаполнения формы, а не для гейта доступа.
   const user = await getCurrentUser();
 
+  const t = await getTranslations("contacts");
+  const tNav = await getTranslations("nav");
+
   return (
     <>
       <section className="bg-white">
         <Container className="py-10 lg:py-14">
-          <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Контакты" }]} className="mb-8" />
+          <Breadcrumbs
+            items={[{ label: tNav("home"), href: "/" }, { label: tNav("contacts") }]}
+            className="mb-8"
+          />
 
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
               <Badge tone="blue" className="mb-5">
-                Мы на связи
+                {t("badge")}
               </Badge>
               <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-navy-900 sm:text-5xl">
-                Свяжитесь с нами
+                {t("title")}
               </h1>
-              <p className="mt-5 max-w-lg text-lg text-muted">
-                Есть вопросы, предложения по сотрудничеству или нужна помощь?
-                Свяжитесь с нами любым удобным способом.
-              </p>
+              <p className="mt-5 max-w-lg text-lg text-muted">{t("intro")}</p>
             </div>
             <IllustrationPanel icon={Headphones} variant="light" />
           </div>
@@ -67,12 +68,12 @@ export default async function ContactsPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <ContactCard
               icon={Phone}
-              label="Телефон"
+              label={t("phone")}
               value={SITE_CONTACTS.phone.display}
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <a href={SITE_CONTACTS.phone.href}>
-                    <Phone size={16} /> Позвонить
+                    <Phone size={16} /> {t("call")}
                   </a>
                 </Button>
               }
@@ -84,7 +85,7 @@ export default async function ContactsPage() {
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <a href={`mailto:${SITE_CONTACTS.email}`}>
-                    <Mail size={16} /> Написать письмо
+                    <Mail size={16} /> {t("writeEmail")}
                   </a>
                 </Button>
               }
@@ -96,7 +97,7 @@ export default async function ContactsPage() {
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <a href={SITE_CONTACTS.instagram.url} target="_blank" rel="noreferrer">
-                    Перейти в Instagram
+                    {t("openInstagram")}
                   </a>
                 </Button>
               }
@@ -108,7 +109,7 @@ export default async function ContactsPage() {
               action={
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <a href={SITE_CONTACTS.telegram.url} target="_blank" rel="noreferrer">
-                    Перейти в Telegram
+                    {t("openTelegram")}
                   </a>
                 </Button>
               }
@@ -132,18 +133,11 @@ export default async function ContactsPage() {
         <Container className="py-16 lg:py-20">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
             <div>
-              <h2 className="text-2xl font-bold text-navy-900 sm:text-3xl">О проекте</h2>
+              <h2 className="text-2xl font-bold text-navy-900 sm:text-3xl">{t("aboutTitle")}</h2>
               <span className="mt-3 block h-1 w-14 rounded-full bg-brand-600" aria-hidden="true" />
               <div className="mt-6 space-y-4 text-muted">
-                <p>
-                  MyDebate — платформа для поиска, публикации и участия в
-                  дебатных турнирах и конференциях Model United Nations.
-                </p>
-                <p>
-                  Наша цель — сделать академические мероприятия более
-                  доступными, организованными и заметными для участников,
-                  организаторов и образовательных учреждений.
-                </p>
+                <p>{t("aboutP1")}</p>
+                <p>{t("aboutP2")}</p>
               </div>
             </div>
             <IllustrationPanel icon={Landmark} variant="light" />
@@ -151,12 +145,12 @@ export default async function ContactsPage() {
 
           <div className="mt-10 grid gap-6 sm:grid-cols-3">
             {MINI_CARDS.map((item) => (
-              <Card key={item.title} className="p-6">
+              <Card key={item.key} className="p-6">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                   <item.icon size={20} />
                 </div>
-                <h3 className="mt-4 font-semibold text-ink">{item.title}</h3>
-                <p className="mt-1 text-sm text-muted">{item.description}</p>
+                <h3 className="mt-4 font-semibold text-ink">{t(item.key)}</h3>
+                <p className="mt-1 text-sm text-muted">{t(`${item.key}Text`)}</p>
               </Card>
             ))}
           </div>

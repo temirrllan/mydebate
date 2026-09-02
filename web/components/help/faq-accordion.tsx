@@ -1,33 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronDown, HelpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
-import { FAQ_ITEMS } from "./faq-data";
+import { FAQ_IDS, type FaqItem } from "./faq-data";
 import { useFaqQuery } from "./faq-provider";
 
 /** Аккордеон ЧЗВ — первый пункт раскрыт по умолчанию; фильтруется по FaqProvider.query. */
 export function FaqAccordion() {
+  const t = useTranslations("faq");
+  const tHelp = useTranslations("help");
   const { query } = useFaqQuery();
-  const [openId, setOpenId] = useState<string | null>(FAQ_ITEMS[0]?.id ?? null);
+
+  // Вопросы собираем из словаря: искать надо по тому тексту, который человек
+  // видит на экране, а не по русскому оригиналу.
+  const faqItems: FaqItem[] = useMemo(
+    () => FAQ_IDS.map((id) => ({ id, question: t(`${id}Q`), answer: t(`${id}A`) })),
+    [t],
+  );
+
+  const [openId, setOpenId] = useState<string | null>(FAQ_IDS[0] ?? null);
 
   const normalized = query.trim().toLowerCase();
   const items = normalized
-    ? FAQ_ITEMS.filter(
+    ? faqItems.filter(
         (item) =>
           item.question.toLowerCase().includes(normalized) ||
           item.answer.toLowerCase().includes(normalized),
       )
-    : FAQ_ITEMS;
+    : faqItems;
 
   if (items.length === 0) {
     return (
       <EmptyState
         icon={HelpCircle}
-        title="Ничего не найдено"
-        description="Попробуйте изменить запрос или свяжитесь с нашей командой поддержки ниже."
+        title={tHelp("notFound")}
+        description={tHelp("notFoundText")}
       />
     );
   }

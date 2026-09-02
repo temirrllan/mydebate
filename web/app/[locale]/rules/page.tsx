@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { IllustrationPanel } from "@/components/ui/illustration-panel";
 import { cn } from "@/lib/utils";
+import { LegalLanguageNotice } from "@/components/ui/legal-language-notice";
 
 export const metadata: Metadata = { title: "Правила и условия" };
 
@@ -106,6 +107,7 @@ export default function RulesPage() {
 
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
             <div>
+              <LegalLanguageNotice />
               <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-navy-900 sm:text-4xl">
                 Правила и условия использования MyDebate
               </h1>
