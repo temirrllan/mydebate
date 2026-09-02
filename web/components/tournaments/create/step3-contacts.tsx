@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Link2, Mail, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FieldError } from "@/components/auth/field-error";
@@ -8,14 +9,10 @@ import { RegistrationType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 import type { FieldErrors, WizardUpdate, WizardValues } from "./types";
 
-const REGISTRATION_TYPE_LABEL: Record<string, string> = {
-  [RegistrationType.PLATFORM]: "Регистрация на платформе MyDebate",
-  [RegistrationType.EXTERNAL]: "Регистрация по внешней ссылке",
-};
-
-const REGISTRATION_TYPE_HINT: Record<string, string> = {
-  [RegistrationType.PLATFORM]: "Участники подают заявку прямо на MyDebate.",
-  [RegistrationType.EXTERNAL]: "Участники переходят по вашей ссылке (Google-форма, сайт и т.п.).",
+// Ключи подписей в словаре (namespace "createTournament").
+const REGISTRATION_TYPE_KEY: Record<string, string> = {
+  [RegistrationType.PLATFORM]: "regTypePlatform",
+  [RegistrationType.EXTERNAL]: "regTypeExternal",
 };
 
 /** Шаг 3 мастера создания турнира — способ регистрации и контакты организатора. */
@@ -28,11 +25,13 @@ export function Step3Contacts({
   errors: FieldErrors;
   update: WizardUpdate;
 }) {
+  const t = useTranslations("createTournament");
+
   return (
     <div className="space-y-6">
       <div role="group" aria-labelledby="registrationType-group-label">
         <span id="registrationType-group-label" className="text-sm font-medium text-ink">
-          Способ регистрации <span className="text-rose-500">*</span>
+          {t("regTypeLabel")} <span className="text-rose-500">*</span>
         </span>
         <div className="mt-1.5 grid gap-3 sm:grid-cols-2">
           {Object.values(RegistrationType).map((type) => (
@@ -49,9 +48,9 @@ export function Step3Contacts({
               )}
             >
               <p className={cn("text-sm font-semibold", values.registrationType === type ? "text-brand-700" : "text-ink")}>
-                {REGISTRATION_TYPE_LABEL[type]}
+                {t(REGISTRATION_TYPE_KEY[type])}
               </p>
-              <p className="mt-1 text-xs text-muted">{REGISTRATION_TYPE_HINT[type]}</p>
+              <p className="mt-1 text-xs text-muted">{t(`${REGISTRATION_TYPE_KEY[type]}Hint`)}</p>
             </button>
           ))}
         </div>
@@ -61,7 +60,7 @@ export function Step3Contacts({
       {values.registrationType === RegistrationType.EXTERNAL && (
         <div>
           <label htmlFor="externalUrl" className="text-sm font-medium text-ink">
-            Ссылка на внешнюю регистрацию <span className="text-rose-500">*</span>
+            {t("externalUrl")} <span className="text-rose-500">*</span>
           </label>
           <div className="relative mt-1.5">
             <Link2 size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -90,10 +89,9 @@ export function Step3Contacts({
           <div className="flex items-start gap-3">
             <CreditCard size={18} className="mt-0.5 shrink-0 text-brand-600" />
             <div>
-              <h3 className="text-sm font-semibold text-ink">Реквизиты для оплаты взноса</h3>
+              <h3 className="text-sm font-semibold text-ink">{t("paymentTitle")}</h3>
               <p className="mt-1 text-sm text-muted">
-                Участник увидит их при регистрации и приложит чек об оплате. Деньги приходят
-                напрямую вам — платформа платежи не проводит.
+                {t("paymentHint")}
               </p>
             </div>
           </div>
@@ -101,7 +99,7 @@ export function Step3Contacts({
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="paymentMethod" className="text-sm font-medium text-ink">
-                Способ оплаты
+                {t("paymentMethod")}
               </label>
               <Input
                 id="paymentMethod"
@@ -116,7 +114,7 @@ export function Step3Contacts({
 
             <div>
               <label htmlFor="paymentAccount" className="text-sm font-medium text-ink">
-                Номер карты или телефона <span className="text-rose-500">*</span>
+                {t("paymentAccount")} <span className="text-rose-500">*</span>
               </label>
               <Input
                 id="paymentAccount"
@@ -133,7 +131,7 @@ export function Step3Contacts({
 
             <div className="sm:col-span-2">
               <label htmlFor="paymentRecipient" className="text-sm font-medium text-ink">
-                ФИО получателя <span className="text-rose-500">*</span>
+                {t("paymentRecipient")} <span className="text-rose-500">*</span>
               </label>
               <Input
                 id="paymentRecipient"
@@ -149,7 +147,7 @@ export function Step3Contacts({
               />
               <FieldError id="paymentRecipient-error" messages={errors.paymentRecipient} />
               <p className="mt-1.5 text-xs text-muted">
-                На чьё имя придёт перевод — участник сверит его перед оплатой.
+                {t("paymentRecipientHint")}
               </p>
             </div>
           </div>
@@ -162,7 +160,7 @@ export function Step3Contacts({
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label htmlFor="email" className="text-sm font-medium text-ink">
-            Контактный email <span className="text-muted">(необязательно)</span>
+            {t("contactEmail")} <span className="text-muted">{t("optional")}</span>
           </label>
           <div className="relative mt-1.5">
             <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -183,7 +181,7 @@ export function Step3Contacts({
 
         <div>
           <label htmlFor="instagram" className="text-sm font-medium text-ink">
-            Instagram <span className="text-muted">(необязательно)</span>
+            {t("instagram")} <span className="text-muted">{t("optional")}</span>
           </label>
           <div className="relative mt-1.5">
             <InstagramIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" width={16} height={16} />
@@ -201,7 +199,7 @@ export function Step3Contacts({
 
         <div>
           <label htmlFor="tiktok" className="text-sm font-medium text-ink">
-            TikTok <span className="text-muted">(необязательно)</span>
+            {t("tiktok")} <span className="text-muted">{t("optional")}</span>
           </label>
           <div className="relative mt-1.5">
             <TikTokIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" width={16} height={16} />
@@ -219,7 +217,7 @@ export function Step3Contacts({
 
         <div>
           <label htmlFor="telegram" className="text-sm font-medium text-ink">
-            Telegram <span className="text-muted">(необязательно)</span>
+            {t("telegram")} <span className="text-muted">{t("optional")}</span>
           </label>
           <div className="relative mt-1.5">
             <TelegramIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" width={16} height={16} />

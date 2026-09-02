@@ -13,11 +13,12 @@ import { Step2Content } from "./create/step2-content";
 import { Step3Contacts } from "./create/step3-contacts";
 import { INITIAL_WIZARD_VALUES, getStepForField, type FieldErrors, type WizardValues } from "./create/types";
 import { useValidationErrors } from "@/lib/i18n/use-validation-errors";
+import { useTranslations } from "next-intl";
 
 const STEPS: ProgressStep[] = [
-  { label: "Основная информация", description: "Формат, дата, место" },
-  { label: "Описание и разделы", description: "Обложка, программа" },
-  { label: "Контакты и регистрация", description: "Как подать заявку" },
+  { key: "step1" },
+  { key: "step2" },
+  { key: "step3" },
 ];
 
 const initialActionState = undefined;
@@ -31,6 +32,7 @@ const initialActionState = undefined;
  * возвращённые fieldErrors перебрасывают мастер на первый затронутый шаг.
  */
 export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean }) {
+  const t = useTranslations("createTournament");
   // Схемы валидации отдают ключи, а не текст (lib/validations/*.ts): одна и та
   // же схема работает на сервере и здесь, а язык известен только при показе.
   const { translateFieldErrors } = useValidationErrors();
@@ -72,20 +74,20 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
         {/* Админ публикует турнир сразу, минуя очередь модерации (см. createTournament),
             поэтому и заголовок, и пояснение под ним другие — иначе экран противоречит сам себе. */}
         <h2 className="mt-5 text-xl font-bold text-navy-900">
-          {isAdmin ? "Турнир опубликован!" : "Турнир отправлен на модерацию!"}
+          {isAdmin ? t("publishedTitle") : t("sentTitle")}
         </h2>
         <p className="mt-2 text-muted">{state.message}</p>
         <p className="mt-1 text-sm text-muted">
           {isAdmin
-            ? "Турнир уже виден в публичном каталоге."
-            : "После проверки администратором турнир появится в публичном каталоге, а вам придёт уведомление."}
+            ? t("publishedText")
+            : t("sentText")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/profile?tab=tournaments">Мои турниры</Link>
+            <Link href="/profile?tab=tournaments">{t("myTournaments")}</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="/tournaments">К каталогу турниров</Link>
+            <Link href="/tournaments">{t("toCatalog")}</Link>
           </Button>
         </div>
       </Card>
@@ -202,7 +204,7 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
         <div className="flex items-start gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3.5 text-sm text-brand-800">
           <ShieldCheck size={18} className="mt-0.5 shrink-0 text-brand-600" aria-hidden="true" />
           <p>
-            Вы создаёте турнир как администратор — он будет опубликован сразу, без модерации.
+            {t("adminNotice")}
           </p>
         </div>
       )}
@@ -214,7 +216,7 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
       )}
 
       <p className="sr-only" role="status" aria-live="polite">
-        Шаг {step} из {STEPS.length}: {STEPS[step - 1].label}
+        {t("stepOf", { current: step, total: STEPS.length, label: t(STEPS[step - 1].key) })}
       </p>
 
       <form onSubmit={handleFormSubmit} noValidate>
@@ -224,7 +226,7 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
               <ClipboardCheck size={18} />
             </div>
             <h2 ref={stepHeadingRef} tabIndex={-1} className="text-lg font-bold text-navy-900 focus:outline-none">
-              {step}. {STEPS[step - 1].label}
+              {step}. {t(STEPS[step - 1].key)}
             </h2>
           </div>
 
@@ -238,7 +240,7 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
         <div className="mt-6 flex items-center justify-between gap-3">
           {step > 1 ? (
             <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)} disabled={pending}>
-              <ChevronLeft size={18} /> Назад
+              <ChevronLeft size={18} /> {t("back")}
             </Button>
           ) : (
             <span />
@@ -246,15 +248,15 @@ export function CreateTournamentWizard({ isAdmin = false }: { isAdmin?: boolean 
 
           {step < 3 ? (
             <Button type="submit">
-              Далее <ChevronRight size={18} />
+              {t("next")} <ChevronRight size={18} />
             </Button>
           ) : (
             <Button type="submit" disabled={pending}>
               {pending ? (
-                "Отправляем…"
+                t("sending")
               ) : (
                 <>
-                  <Send size={18} /> {isAdmin ? "Создать и опубликовать" : "Отправить на модерацию"}
+                  <Send size={18} /> {isAdmin ? t("submitAdmin") : t("submit")}
                 </>
               )}
             </Button>

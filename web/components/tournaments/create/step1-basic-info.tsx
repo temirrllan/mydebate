@@ -9,6 +9,7 @@ import { TournamentFormat, LocationType, Level } from "@/lib/enums";
 import { FORMAT_LABEL, LEVEL_LABEL, LOCATION_TYPE_LABEL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { LANGUAGE_OPTIONS, type FieldErrors, type WizardUpdate, type WizardValues } from "./types";
+import { useTranslations } from "next-intl";
 
 /** Сегодняшняя дата в формате "YYYY-MM-DD" по локальному календарю пользователя. */
 function todayIsoLocal(): string {
@@ -26,6 +27,7 @@ export function Step1BasicInfo({
   errors: FieldErrors;
   update: WizardUpdate;
 }) {
+  const t = useTranslations("createTournament");
   const isOffline = values.locationType === LocationType.OFFLINE;
   // Границы календарей повторяют кросс-проверки step1Schema (validateStep1Cross):
   // прошлое недоступно, окончание не раньше начала, дедлайн не позже старта.
@@ -45,7 +47,7 @@ export function Step1BasicInfo({
     <div className="space-y-6">
       <div>
         <label htmlFor="title" className="text-sm font-medium text-ink">
-          Название турнира <span className="text-rose-500">*</span>
+          {t("name")} <span className="text-rose-500">*</span>
         </label>
         <div className="relative mt-1.5">
           <Trophy size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -53,7 +55,7 @@ export function Step1BasicInfo({
             id="title"
             value={values.title}
             onChange={(e) => update("title", e.target.value)}
-            placeholder="Например: Astana Open Debate Cup 2026"
+            placeholder={t("namePlaceholder")}
             className="pl-10"
             invalid={Boolean(errors.title?.length)}
             aria-invalid={Boolean(errors.title?.length)}
@@ -66,7 +68,7 @@ export function Step1BasicInfo({
       <div className="grid gap-5 sm:grid-cols-2">
         <div role="group" aria-labelledby="format-group-label">
           <span id="format-group-label" className="text-sm font-medium text-ink">
-            Формат <span className="text-rose-500">*</span>
+            {t("format")} <span className="text-rose-500">*</span>
           </span>
           <div className="mt-1.5 grid grid-cols-2 gap-2">
             {Object.values(TournamentFormat).map((format) => (
@@ -91,7 +93,7 @@ export function Step1BasicInfo({
 
         <div role="group" aria-labelledby="locationType-group-label">
           <span id="locationType-group-label" className="text-sm font-medium text-ink">
-            Тип проведения <span className="text-rose-500">*</span>
+            {t("locationType")} <span className="text-rose-500">*</span>
           </span>
           <div className="mt-1.5 grid grid-cols-2 gap-2">
             {Object.values(LocationType).map((type) => (
@@ -118,7 +120,7 @@ export function Step1BasicInfo({
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="level" className="text-sm font-medium text-ink">
-            Уровень <span className="text-muted">(необязательно)</span>
+            {t("level")} <span className="text-muted">{t("optional")}</span>
           </label>
           <div className="mt-1.5">
             <Select
@@ -127,7 +129,7 @@ export function Step1BasicInfo({
               onChange={(e) => update("level", e.target.value)}
               aria-describedby={errors.level?.length ? "level-error" : undefined}
             >
-              <option value="">Не указан</option>
+              <option value="">{t("levelNotSet")}</option>
               {Object.values(Level).map((l) => (
                 <option key={l} value={l}>
                   {LEVEL_LABEL[l] ?? l}
@@ -140,7 +142,7 @@ export function Step1BasicInfo({
 
         <div role="group" aria-labelledby="languages-group-label">
           <span id="languages-group-label" className="text-sm font-medium text-ink">
-            Языки турнира <span className="text-rose-500">*</span>
+            {t("languages")} <span className="text-rose-500">*</span>
           </span>
           <div className="mt-1.5 flex flex-wrap gap-2">
             {LANGUAGE_OPTIONS.map((lang) => {
@@ -170,18 +172,18 @@ export function Step1BasicInfo({
       {isOffline && (
         <div className="space-y-5 rounded-[var(--radius-btn)] border border-line bg-canvas p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-ink">
-            <MapPin size={16} className="text-brand-600" /> Место проведения
+            <MapPin size={16} className="text-brand-600" /> {t("venueSection")}
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="city" className="text-sm font-medium text-ink">
-                Город <span className="text-rose-500">*</span>
+                {t("city")} <span className="text-rose-500">*</span>
               </label>
               <Input
                 id="city"
                 value={values.city}
                 onChange={(e) => update("city", e.target.value)}
-                placeholder="Например: Алматы"
+                placeholder={t("cityPlaceholder")}
                 className="mt-1.5"
                 invalid={Boolean(errors.city?.length)}
                 aria-invalid={Boolean(errors.city?.length)}
@@ -191,13 +193,13 @@ export function Step1BasicInfo({
             </div>
             <div>
               <label htmlFor="venue" className="text-sm font-medium text-ink">
-                Площадка <span className="text-muted">(необязательно)</span>
+                {t("venue")} <span className="text-muted">{t("optional")}</span>
               </label>
               <Input
                 id="venue"
                 value={values.venue}
                 onChange={(e) => update("venue", e.target.value)}
-                placeholder="Например: Назарбаев Университет"
+                placeholder={t("venuePlaceholder")}
                 className="mt-1.5"
                 aria-describedby={errors.venue?.length ? "venue-error" : undefined}
               />
@@ -205,13 +207,13 @@ export function Step1BasicInfo({
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="address" className="text-sm font-medium text-ink">
-                Адрес <span className="text-muted">(необязательно)</span>
+                {t("address")} <span className="text-muted">{t("optional")}</span>
               </label>
               <Input
                 id="address"
                 value={values.address}
                 onChange={(e) => update("address", e.target.value)}
-                placeholder="Улица, дом"
+                placeholder={t("addressPlaceholder")}
                 className="mt-1.5"
                 aria-describedby={errors.address?.length ? "address-error" : undefined}
               />
@@ -224,7 +226,7 @@ export function Step1BasicInfo({
       <div className="grid gap-5 sm:grid-cols-3">
         <div>
           <label htmlFor="startDate" className="text-sm font-medium text-ink">
-            Дата начала <span className="text-rose-500">*</span>
+            {t("startDate")} <span className="text-rose-500">*</span>
           </label>
           <DatePicker
             id="startDate"
@@ -240,7 +242,7 @@ export function Step1BasicInfo({
 
         <div>
           <label htmlFor="endDate" className="text-sm font-medium text-ink">
-            Дата окончания <span className="text-muted">(необязательно)</span>
+            {t("endDate")} <span className="text-muted">{t("optional")}</span>
           </label>
           <DatePicker
             id="endDate"
@@ -256,7 +258,7 @@ export function Step1BasicInfo({
 
         <div>
           <label htmlFor="registrationDeadline" className="text-sm font-medium text-ink">
-            Дедлайн регистрации <span className="text-rose-500">*</span>
+            {t("deadline")} <span className="text-rose-500">*</span>
           </label>
           <DatePicker
             id="registrationDeadline"
@@ -276,7 +278,7 @@ export function Step1BasicInfo({
 
       <div className="sm:w-1/3">
         <label htmlFor="price" className="text-sm font-medium text-ink">
-          Стоимость участия, ₸ <span className="text-muted">(0 — бесплатно)</span>
+          {t("price")} <span className="text-muted">{t("priceHint")}</span>
         </label>
         <div className="relative mt-1.5">
           <Wallet size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -298,7 +300,7 @@ export function Step1BasicInfo({
 
       {!isOffline && (
         <p className="inline-flex items-center gap-1.5 text-xs text-muted">
-          <Globe2 size={14} /> Турнир пройдёт онлайн — город и адрес не требуются.
+          <Globe2 size={14} /> {t("onlineNotice")}
         </p>
       )}
     </div>

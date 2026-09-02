@@ -87,6 +87,11 @@ describe("словари переводов", () => {
         "profile.cityPlaceholder", // «Астана» — имя собственное
         "contacts.phone", // «Телефон»
         "support.emailPlaceholder", // «example@mail.com» — не текст
+        "createTournament.format", // «Формат» и «Логотип» — заимствования
+        "createTournament.logo",
+        "createTournament.instagram", // названия сетей не переводятся
+        "createTournament.tiktok",
+        "createTournament.telegram",
         // MUN и уровни (Beginner/Intermediate/Advanced) — устоявшиеся термины
         // дебатного сообщества, их не переводят ни на один из трёх языков.
         "enums.format.MUN",

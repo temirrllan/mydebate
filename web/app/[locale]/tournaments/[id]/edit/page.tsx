@@ -6,16 +6,22 @@ import { EditTournamentForm } from "@/components/tournaments/edit-form";
 import { requireUser } from "@/lib/auth/session";
 import { getTournamentForEdit } from "@/lib/tournaments/queries";
 import { Role } from "@/lib/enums";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
+  const t = await getTranslations({ locale, namespace: "createTournament" });
   const user = await requireUser(`/tournaments/${id}/edit`);
   const tournament = await getTournamentForEdit(id, user.id, user.role === Role.ADMIN);
-  return { title: tournament ? `Редактирование · ${tournament.title}` : "Редактирование турнира" };
+  return {
+    title: tournament
+      ? t("editMetaTitle", { title: tournament.title })
+      : t("editMetaFallback"),
+  };
 }
 
 export default async function EditTournamentPage({
@@ -33,22 +39,25 @@ export default async function EditTournamentPage({
   const tournament = await getTournamentForEdit(id, user.id, isAdmin);
   if (!tournament) notFound();
 
+  const t = await getTranslations("createTournament");
+  const tNav = await getTranslations("nav");
+
   return (
     <Container className="py-10 sm:py-14">
       <Breadcrumbs
         items={[
-          { label: "Главная", href: "/" },
-          { label: "Турниры", href: "/tournaments" },
-          { label: "Мои турниры", href: "/profile?tab=tournaments" },
-          { label: "Редактирование" },
+          { label: tNav("home"), href: "/" },
+          { label: tNav("tournaments"), href: "/tournaments" },
+          { label: t("myTournaments"), href: "/profile?tab=tournaments" },
+          { label: t("editBreadcrumb") },
         ]}
       />
 
       <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">
-        Редактирование турнира
+        {t("editTitle")}
       </h1>
       <p className="mt-2 max-w-2xl text-muted">
-        «{tournament.title}» — изменения вступят в силу сразу, без повторной модерации.
+        {t("editIntro", { title: tournament.title })}
       </p>
 
       <div className="mt-8 max-w-3xl">

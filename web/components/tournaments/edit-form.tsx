@@ -18,6 +18,7 @@ import { editStep1Schema, step2Schema, step3Schema } from "@/lib/validations/tou
 import { TournamentStatus, parseLanguages } from "@/lib/enums";
 import type { TournamentEditData } from "@/lib/tournaments/queries";
 import { useValidationErrors } from "@/lib/i18n/use-validation-errors";
+import { useTranslations } from "next-intl";
 
 const initialState = undefined;
 
@@ -68,6 +69,7 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
   // Схемы валидации отдают ключи, а не текст (lib/validations/*.ts): одна и та
   // же схема работает на сервере и здесь, а язык известен только при показе.
   const { translateFieldErrors } = useValidationErrors();
+  const t = useTranslations("createTournament");
   const boundAction = editTournament.bind(null, tournament.id);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
   const [values, setValues] = useState<WizardValues>(() => buildInitialValues(tournament));
@@ -87,15 +89,15 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <CheckCircle2 size={30} />
         </div>
-        <h2 className="mt-5 text-xl font-bold text-navy-900">Готово!</h2>
+        <h2 className="mt-5 text-xl font-bold text-navy-900">{t("savedTitle")}</h2>
         <p className="mt-2 text-muted">{state.message}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/profile?tab=tournaments">Мои турниры</Link>
+            <Link href="/profile?tab=tournaments">{t("myTournaments")}</Link>
           </Button>
           {canViewTournament && (
             <Button asChild size="lg" variant="outline">
-              <Link href={`/tournaments/${tournament.id}`}>Смотреть турнир</Link>
+              <Link href={`/tournaments/${tournament.id}`}>{t("viewTournament")}</Link>
             </Button>
           )}
         </div>
@@ -196,24 +198,24 @@ export function EditTournamentForm({ tournament }: { tournament: TournamentEditD
       )}
       {hasErrors && !state?.message && (
         <p ref={errorBannerRef} role="alert" className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600">
-          Проверьте выделенные поля — есть ошибки заполнения.
+          {t("hasErrors")}
         </p>
       )}
 
-      <Section title="Основная информация">
+      <Section title={t("step1")}>
         <Step1BasicInfo values={values} errors={fieldErrors} update={update} />
       </Section>
 
-      <Section title="Описание и разделы">
+      <Section title={t("step2")}>
         <Step2Content values={values} errors={fieldErrors} update={update} />
       </Section>
 
-      <Section title="Контакты и регистрация">
+      <Section title={t("step3")}>
         <Step3Contacts values={values} errors={fieldErrors} update={update} />
       </Section>
 
       <Button type="submit" size="lg" className="w-full justify-center" disabled={pending}>
-        {pending ? "Сохраняем…" : <><Save size={18} /> Сохранить изменения</>}
+        {pending ? t("saving") : <><Save size={18} /> {t("saveChanges")}</>}
       </Button>
 
       <DangerZone tournamentId={tournament.id} />
@@ -241,6 +243,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * турниры».
  */
 function DangerZone({ tournamentId }: { tournamentId: string }) {
+  const t = useTranslations("createTournament");
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
   const [pending, startDelete] = useTransition();
@@ -266,10 +269,9 @@ function DangerZone({ tournamentId }: { tournamentId: string }) {
       <div className="flex items-start gap-3">
         <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rose-500" aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-bold text-navy-900">Отмена турнира</h2>
+          <h2 className="text-base font-bold text-navy-900">{t("cancelTitle")}</h2>
           <p className="mt-1 text-sm text-muted">
-            Турнир будет снят с публикации и скрыт из каталога. Зарегистрированные участники получат
-            уведомление об отмене. Это действие нельзя отменить.
+            {t("cancelText")}
           </p>
 
           {error && (
@@ -288,7 +290,7 @@ function DangerZone({ tournamentId }: { tournamentId: string }) {
                 disabled={pending}
               >
                 {pending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                Да, отменить турнир
+                {t("cancelYes")}
               </Button>
               <Button
                 type="button"
@@ -299,7 +301,7 @@ function DangerZone({ tournamentId }: { tournamentId: string }) {
                 }}
                 disabled={pending}
               >
-                Не отменять
+                {t("cancelNo")}
               </Button>
             </div>
           ) : (
@@ -310,7 +312,7 @@ function DangerZone({ tournamentId }: { tournamentId: string }) {
               className="mt-4 border-rose-300 text-rose-600 hover:border-rose-400 hover:text-rose-700"
               onClick={() => setConfirm(true)}
             >
-              <Trash2 size={16} /> Отменить турнир
+              <Trash2 size={16} /> {t("cancelButton")}
             </Button>
           )}
         </div>
