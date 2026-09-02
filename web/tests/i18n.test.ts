@@ -92,6 +92,10 @@ describe("словари переводов", () => {
         "createTournament.instagram", // названия сетей не переводятся
         "createTournament.tiktok",
         "createTournament.telegram",
+        "participants.phone", // «Телефон», «Команда», «Комитет» — заимствования
+        "participants.team",
+        "participants.committee",
+        "participants.audienceStatus", // «{label} ({count})» — только плейсхолдеры
         // MUN и уровни (Beginner/Intermediate/Advanced) — устоявшиеся термины
         // дебатного сообщества, их не переводят ни на один из трёх языков.
         "enums.format.MUN",

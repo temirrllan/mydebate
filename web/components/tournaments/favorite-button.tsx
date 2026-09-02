@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Heart } from "lucide-react";
 import { toggleFavorite } from "@/lib/actions/favorites";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * ❤️-тоггл избранного — точка расширения `favoriteSlot` карточки турнира
@@ -22,6 +23,7 @@ export function FavoriteButton({
   initialFavorited?: boolean;
   className?: string;
 }) {
+  const t = useTranslations("participants");
   const [favorited, setFavorited] = useState(initialFavorited);
   const [pending, startTransition] = useTransition();
 
@@ -48,7 +50,7 @@ export function FavoriteButton({
       onClick={handleClick}
       disabled={pending}
       aria-pressed={favorited}
-      aria-label={favorited ? "Убрать из избранного" : "Добавить в избранное"}
+      aria-label={favorited ? t("removeFavorite") : t("addFavorite")}
       className={cn(
         "flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-slate-400 shadow-sm backdrop-blur transition-all hover:scale-105 hover:text-rose-500 disabled:pointer-events-none disabled:opacity-70",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",

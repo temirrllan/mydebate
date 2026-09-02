@@ -9,9 +9,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ParticipantCard } from "@/components/tournaments/participant-card";
 import { AnnouncementPanel } from "@/components/tournaments/announcement-panel";
 import { setRegistrationStatus } from "@/lib/actions/registrations";
-import { REG_STATUS_SHORT_LABEL, REG_STATUS_ORDER, REG_STATUS_TONE } from "@/lib/format";
+import { REG_STATUS_ORDER, REG_STATUS_TONE } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { TournamentParticipant } from "@/lib/tournaments/queries";
+import { useTranslations } from "next-intl";
 
 const ALL = "ALL";
 
@@ -32,6 +33,8 @@ export function ParticipantsManager({
   tournamentTitle: string;
   participants: TournamentParticipant[];
 }) {
+  const t = useTranslations("participants");
+  const tEnum = useTranslations("enums");
   const [participants, setParticipants] = useState(initial);
   const [filter, setFilter] = useState<string>(ALL);
 
@@ -45,10 +48,10 @@ export function ParticipantsManager({
   const visible = filter === ALL ? participants : participants.filter((p) => p.status === filter);
 
   const chips = [
-    { value: ALL, label: "Все", count: participants.length },
+    { value: ALL, label: t("all"), count: participants.length },
     ...REG_STATUS_ORDER.filter((s) => (counts[s] ?? 0) > 0).map((s) => ({
       value: s,
-      label: REG_STATUS_SHORT_LABEL[s] ?? s,
+      label: tEnum(`regStatus.${s}`),
       count: counts[s],
     })),
   ];
@@ -76,7 +79,7 @@ export function ParticipantsManager({
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Фильтр по статусу заявки">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t("filterLabel")}>
           {chips.map((chip) => {
             const active = filter === chip.value;
             return (
@@ -108,7 +111,7 @@ export function ParticipantsManager({
 
         <Button asChild variant="outline" size="sm" className="shrink-0 self-start sm:self-auto">
           <a href={exportHref} download>
-            <Download size={16} /> Скачать CSV
+            <Download size={16} /> {t("downloadCsv")}
           </a>
         </Button>
       </div>
@@ -119,13 +122,13 @@ export function ParticipantsManager({
             icon={Users}
             title={
               filter === ALL
-                ? "Пока никто не зарегистрировался"
-                : "Нет заявок с этим статусом"
+                ? t("emptyAll")
+                : t("emptyFiltered")
             }
             description={
               filter === ALL
-                ? "Как только появятся заявки на участие, они отобразятся здесь."
-                : "Попробуйте выбрать другой фильтр."
+                ? t("emptyAllText")
+                : t("emptyFilteredText")
             }
           />
         ) : (
@@ -160,6 +163,8 @@ function StatusControl({
   participant: TournamentParticipant;
   onChange: (id: string, status: string) => void;
 }) {
+  const t = useTranslations("participants");
+  const tEnum = useTranslations("enums");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -181,7 +186,7 @@ function StatusControl({
     <div className="flex flex-col items-end gap-1.5">
       <div className="flex items-center gap-2">
         <Badge tone={REG_STATUS_TONE[participant.status] ?? "gray"}>
-          {REG_STATUS_SHORT_LABEL[participant.status] ?? participant.status}
+          {tEnum(`regStatus.${participant.status}`)}
         </Badge>
         {pending && <Loader2 size={14} className="animate-spin text-muted" aria-hidden="true" />}
       </div>
@@ -190,12 +195,12 @@ function StatusControl({
         className="h-9 text-xs"
         value={participant.status}
         disabled={pending}
-        aria-label={`Изменить статус заявки: ${participant.fullName ?? participant.user.firstName}`}
+        aria-label={t("changeStatus", { name: participant.fullName ?? participant.user.firstName })}
         onChange={(e) => handleChange(e.target.value)}
       >
         {REG_STATUS_ORDER.map((s) => (
           <option key={s} value={s}>
-            {REG_STATUS_SHORT_LABEL[s] ?? s}
+            {tEnum(`regStatus.${s}`)}
           </option>
         ))}
       </Select>

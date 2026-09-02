@@ -15,8 +15,9 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Level } from "@/lib/enums";
-import { REG_STATUS_LABEL, REG_STATUS_TONE, LEVEL_LABEL, formatDateRu } from "@/lib/format";
+import { REG_STATUS_TONE, LEVEL_LABEL, formatDate } from "@/lib/format";
 import type { TournamentParticipant } from "@/lib/tournaments/queries";
+import { useLocale, useTranslations } from "next-intl";
 
 /**
  * Карточка одного участника — страница организатора «Участники турнира»
@@ -36,6 +37,9 @@ export function ParticipantCard({
    */
   control?: React.ReactNode;
 }) {
+  const t = useTranslations("participants");
+  const tEnum = useTranslations("enums");
+  const locale = useLocale();
   const displayName = participant.fullName || `${participant.user.firstName} ${participant.user.lastName}`;
   const initials = `${participant.user.firstName?.[0] ?? ""}${participant.user.lastName?.[0] ?? ""}`.toUpperCase();
 
@@ -43,30 +47,30 @@ export function ParticipantCard({
   if (participant.contactEmail || participant.user.email) {
     rows.push({ icon: Mail, label: "Email", value: participant.contactEmail || participant.user.email });
   }
-  if (participant.phone) rows.push({ icon: Phone, label: "Телефон", value: participant.phone });
+  if (participant.phone) rows.push({ icon: Phone, label: t("phone"), value: participant.phone });
   if (participant.gradeOrCourse) {
-    rows.push({ icon: GraduationCap, label: "Класс / Курс", value: participant.gradeOrCourse });
+    rows.push({ icon: GraduationCap, label: t("grade"), value: participant.gradeOrCourse });
   }
   if (participant.schoolOrUniversity) {
-    rows.push({ icon: School, label: "Школа / Университет", value: participant.schoolOrUniversity });
+    rows.push({ icon: School, label: t("school"), value: participant.schoolOrUniversity });
   }
-  if (participant.teamName) rows.push({ icon: Users2, label: "Команда", value: participant.teamName });
+  if (participant.teamName) rows.push({ icon: Users2, label: t("team"), value: participant.teamName });
   if (participant.teammateNames) {
-    rows.push({ icon: Users2, label: "Тиммейты", value: participant.teammateNames });
+    rows.push({ icon: Users2, label: t("teammates"), value: participant.teammateNames });
   }
   if (participant.experienceLevel) {
     rows.push({
       icon: Award,
-      label: "Уровень опыта",
+      label: t("experience"),
       value: LEVEL_LABEL[participant.experienceLevel as Level] ?? participant.experienceLevel,
     });
   }
   if (participant.preferredLanguage) {
-    rows.push({ icon: Languages, label: "Язык", value: participant.preferredLanguage });
+    rows.push({ icon: Languages, label: t("language"), value: participant.preferredLanguage });
   }
   // Комитет вместо языка — заявка на MUN (см. register-form.tsx).
   if (participant.committee) {
-    rows.push({ icon: Landmark, label: "Комитет", value: participant.committee });
+    rows.push({ icon: Landmark, label: t("committee"), value: participant.committee });
   }
 
   return (
@@ -83,13 +87,13 @@ export function ParticipantCard({
           <div className="min-w-0">
             <p className="truncate font-semibold text-ink">{displayName}</p>
             <p className="inline-flex items-center gap-1 text-xs text-muted">
-              <Calendar size={12} /> Подал(а) заявку {formatDateRu(participant.createdAt)}
+              <Calendar size={12} /> {t("appliedOn", { date: formatDate(participant.createdAt, locale) })}
             </p>
           </div>
         </div>
         {control ?? (
           <Badge tone={REG_STATUS_TONE[participant.status] ?? "gray"}>
-            {REG_STATUS_LABEL[participant.status] ?? participant.status}
+            {tEnum(`regStatus.${participant.status}`)}
           </Badge>
         )}
       </div>
@@ -112,7 +116,7 @@ export function ParticipantCard({
         <div className="mt-4 flex items-start gap-2 border-t border-line pt-4 text-sm">
           <MessageSquare size={15} className="mt-0.5 shrink-0 text-muted" />
           <div>
-            <p className="text-xs text-muted">Дополнительная информация</p>
+            <p className="text-xs text-muted">{t("additionalInfo")}</p>
             <p className="mt-0.5 text-ink">{participant.additionalInfo}</p>
           </div>
         </div>
@@ -124,7 +128,7 @@ export function ParticipantCard({
       {participant.receiptUrl && (
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4 text-sm">
           <span className="flex items-center gap-2 text-muted">
-            <Receipt size={15} className="shrink-0" /> Чек об оплате
+            <Receipt size={15} className="shrink-0" /> {t("receipt")}
           </span>
           <a
             href={participant.receiptUrl}
@@ -132,7 +136,7 @@ export function ParticipantCard({
             rel="noreferrer"
             className="font-medium text-brand-600 underline-offset-2 hover:underline"
           >
-            Посмотреть
+            {t("view")}
           </a>
         </div>
       )}

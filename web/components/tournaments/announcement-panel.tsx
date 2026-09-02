@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FieldError } from "@/components/auth/field-error";
 import { announceToParticipants } from "@/lib/actions/announcements";
-import { REG_STATUS_SHORT_LABEL, REG_STATUS_ORDER } from "@/lib/format";
+import { REG_STATUS_ORDER } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /** Совпадает с ANNOUNCEMENT_AUDIENCE_ALL из lib/validations/announcement.ts.
  *  Продублировано строкой, а не импортом: схема валидации тянет за собой zod
@@ -27,71 +28,17 @@ const MESSAGE_MAX = 4000;
  * Многоточия «…» намеренные: это места, которые организатор должен дописать,
  * и их видно с первого взгляда.
  */
-const TEMPLATES: { id: string; label: string; subject: string; body: string }[] = [
-  {
-    id: "chat",
-    label: "Чат турнира",
-    subject: "Присоединяйтесь к чату турнира",
-    body: `Здравствуйте!
-
-Вы зарегистрированы на турнир «{tournament}». Вся оперативная информация — в нашей группе:
-
-…вставьте ссылку на WhatsApp-группу…
-
-Пожалуйста, вступите в неё до начала турнира: там будут расписание, изменения и ответы на вопросы.`,
-  },
-  {
-    id: "announcement",
-    label: "Важное объявление",
-    subject: "Важное объявление по турниру",
-    body: `Здравствуйте!
-
-Сообщаем важную информацию по турниру «{tournament}»:
-
-…текст объявления…
-
-Спасибо за внимание!`,
-  },
-  {
-    id: "schedule",
-    label: "Расписание и место",
-    subject: "Расписание и место проведения",
-    body: `Здравствуйте!
-
-Публикуем детали проведения турнира «{tournament}».
-
-Дата и время сбора: …
-Место проведения: …
-При себе иметь: …
-
-Просим приходить за 30 минут до начала регистрации на площадке.`,
-  },
-  {
-    id: "payment",
-    label: "Напоминание об оплате",
-    subject: "Напоминание об оплате взноса",
-    body: `Здравствуйте!
-
-Напоминаем об оплате организационного взноса за участие в турнире «{tournament}».
-
-Реквизиты: …
-Срок оплаты: …
-
-После оплаты, пожалуйста, пришлите чек, если ещё не приложили его к заявке.`,
-  },
-  {
-    id: "thanks",
-    label: "Благодарность",
-    subject: "Спасибо за участие!",
-    body: `Здравствуйте!
-
-Спасибо, что были частью турнира «{tournament}»! Нам было приятно видеть вас среди участников.
-
-…итоги, ссылки на фотографии, анонс следующего турнира…
-
-До встречи на следующих турнирах!`,
-  },
-];
+/**
+ * Заготовки сообщений — только ИДЕНТИФИКАТОРЫ. Тема и текст живут в словаре
+ * (namespace "announcementTemplates", ключи `<id>Subject` и `<id>Body`):
+ * организатор пишет участникам на языке своего интерфейса, а тексты длинные
+ * и держать их тремя копиями в коде нельзя.
+ *
+ * `{tournament}` в теле подставляется названием турнира при вставке шаблона.
+ * Многоточия «…» намеренные: это места, которые организатор должен дописать,
+ * и их видно с первого взгляда.
+ */
+const TEMPLATE_IDS = ["chat", "announcement", "schedule", "payment", "thanks"] as const;
 
 /**
  * Рассылка участникам — организатор пишет одно сообщение, и оно уходит всем
@@ -114,6 +61,9 @@ export function AnnouncementPanel({
   counts: Record<string, number>;
   total: number;
 }) {
+  const t = useTranslations("participants");
+  const tTpl = useTranslations("announcementTemplates");
+  const tEnum = useTranslations("enums");
   const boundAction = announceToParticipants.bind(null, tournamentId);
   const [state, formAction, pending] = useActionState(boundAction, undefined);
 
@@ -141,9 +91,9 @@ export function AnnouncementPanel({
     setMessage("");
   }
 
-  function applyTemplate(template: (typeof TEMPLATES)[number]) {
-    setSubject(template.subject);
-    setMessage(template.body.replaceAll("{tournament}", tournamentTitle));
+  function applyTemplate(id: (typeof TEMPLATE_IDS)[number]) {
+    setSubject(tTpl(`${id}Subject`));
+    setMessage(tTpl(`${id}Body`, { tournament: tournamentTitle }));
     messageRef.current?.focus();
   }
 
@@ -159,9 +109,9 @@ export function AnnouncementPanel({
           <Megaphone size={18} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-ink">Написать участникам</span>
+          <span className="block font-semibold text-ink">{t("announceTitle")}</span>
           <span className="block text-sm text-muted">
-            Сообщение придёт всем выбранным участникам — в личный кабинет и на почту.
+            {t("announceHint")}
           </span>
         </span>
         <ChevronDown
@@ -179,7 +129,7 @@ export function AnnouncementPanel({
               className="flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
             >
               <CheckCircle2 size={16} className="shrink-0" />
-              Сообщение отправлено: {state.recipients} {pluralizeRecipient(state.recipients ?? 0)}.
+              {t("announceSent", { count: state.recipients ?? 0 })}
             </p>
           )}
           {state?.message && !state.success && (
@@ -189,28 +139,28 @@ export function AnnouncementPanel({
           )}
 
           <div>
-            <span className="text-sm font-medium text-ink">Шаблон</span>
+            <span className="text-sm font-medium text-ink">{t("template")}</span>
             <div className="mt-1.5 flex flex-wrap gap-2">
-              {TEMPLATES.map((template) => (
+              {TEMPLATE_IDS.map((id) => (
                 <button
-                  key={template.id}
+                  key={id}
                   type="button"
-                  onClick={() => applyTemplate(template)}
+                  onClick={() => applyTemplate(id)}
                   className="rounded-full border border-line bg-white px-3 py-1.5 text-sm text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700"
                 >
-                  {template.label}
+                  {t(`tpl${id.charAt(0).toUpperCase()}${id.slice(1)}`)}
                 </button>
               ))}
             </div>
             <p className="mt-1.5 text-xs text-muted">
-              Шаблон подставит тему и каркас текста — допишите детали перед отправкой.
+              {t("templateHint")}
             </p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-[1fr_220px]">
             <div>
               <label htmlFor="announcement-subject" className="text-sm font-medium text-ink">
-                Тема <span className="text-rose-500">*</span>
+                {t("subject")} <span className="text-rose-500">*</span>
               </label>
               <Input
                 id="announcement-subject"
@@ -218,7 +168,7 @@ export function AnnouncementPanel({
                 required
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Например: Присоединяйтесь к чату турнира"
+                placeholder={t("subjectPlaceholder")}
                 className="mt-1.5"
                 invalid={Boolean(fieldErrors.subject?.length)}
                 aria-invalid={Boolean(fieldErrors.subject?.length)}
@@ -229,7 +179,7 @@ export function AnnouncementPanel({
 
             <div>
               <label htmlFor="announcement-audience" className="text-sm font-medium text-ink">
-                Кому
+                {t("audience")}
               </label>
               <div className="mt-1.5">
                 <Select
@@ -238,10 +188,10 @@ export function AnnouncementPanel({
                   value={audience}
                   onChange={(e) => setAudience(e.target.value)}
                 >
-                  <option value={ALL}>Все участники ({total})</option>
+                  <option value={ALL}>{t("audienceAll", { count: total })}</option>
                   {REG_STATUS_ORDER.filter((s) => (counts[s] ?? 0) > 0).map((s) => (
                     <option key={s} value={s}>
-                      {REG_STATUS_SHORT_LABEL[s] ?? s} ({counts[s]})
+                      {t("audienceStatus", { label: tEnum(`regStatus.${s}`), count: counts[s] ?? 0 })}
                     </option>
                   ))}
                 </Select>
@@ -251,7 +201,7 @@ export function AnnouncementPanel({
 
           <div>
             <label htmlFor="announcement-message" className="text-sm font-medium text-ink">
-              Сообщение <span className="text-rose-500">*</span>
+              {t("message")} <span className="text-rose-500">*</span>
             </label>
             <textarea
               id="announcement-message"
@@ -261,7 +211,7 @@ export function AnnouncementPanel({
               rows={9}
               value={message}
               onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
-              placeholder="Текст сообщения. Ссылки можно вставлять как есть — в письме они станут кликабельными."
+              placeholder={t("messagePlaceholder")}
               className={cn(
                 "mt-1.5 w-full rounded-[var(--radius-btn)] border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted",
                 "focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40",
@@ -281,10 +231,10 @@ export function AnnouncementPanel({
           <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
             <Button type="submit" disabled={pending || recipientCount === 0}>
               <Send size={16} />
-              {pending ? "Отправляем…" : "Отправить"}
+              {pending ? t("sending") : t("send")}
             </Button>
             <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-              <Users size={15} /> Получат: {recipientCount} {pluralizeRecipient(recipientCount)}
+              <Users size={15} /> {t("willReceive", { count: recipientCount })}
             </span>
           </div>
         </form>
@@ -293,10 +243,3 @@ export function AnnouncementPanel({
   );
 }
 
-function pluralizeRecipient(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return "участник";
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "участника";
-  return "участников";
-}

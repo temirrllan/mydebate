@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
@@ -8,16 +8,22 @@ import { Button } from "@/components/ui/button";
 import { ParticipantsManager } from "@/components/tournaments/participants-manager";
 import { requireUser } from "@/lib/auth/session";
 import { listTournamentParticipants } from "@/lib/tournaments/queries";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
+  const t = await getTranslations({ locale, namespace: "participants" });
   const user = await requireUser(`/tournaments/${id}/participants`);
   const result = await listTournamentParticipants(id, user.id);
-  return { title: result ? `Участники · ${result.tournament.title}` : "Участники турнира" };
+  return {
+    title: result
+      ? t("metaTitle", { title: result.tournament.title })
+      : t("metaTitleFallback"),
+  };
 }
 
 export default async function TournamentParticipantsPage({
@@ -36,30 +42,33 @@ export default async function TournamentParticipantsPage({
 
   const { tournament, participants } = result;
 
+  const t = await getTranslations("participants");
+  const tNav = await getTranslations("nav");
+  const tProfile = await getTranslations("profile");
+
   return (
     <Container className="py-10 sm:py-14">
       <Breadcrumbs
         items={[
-          { label: "Главная", href: "/" },
-          { label: "Турниры", href: "/tournaments" },
-          { label: "Мои турниры", href: "/profile?tab=tournaments" },
-          { label: "Участники" },
+          { label: tNav("home"), href: "/" },
+          { label: tNav("tournaments"), href: "/tournaments" },
+          { label: tProfile("tabTournaments"), href: "/profile?tab=tournaments" },
+          { label: t("breadcrumb") },
         ]}
       />
 
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">
-            Участники турнира
+            {t("title")}
           </h1>
           <p className="mt-2 max-w-2xl text-muted">
-            «{tournament.title}» — {participants.length}{" "}
-            {pluralizeParticipant(participants.length)}
+            {t("count", { title: tournament.title, count: participants.length })}
           </p>
         </div>
         <Button asChild variant="outline" size="sm">
           <Link href={`/tournaments/${tournament.id}`}>
-            <ArrowLeft size={16} /> К турниру
+            <ArrowLeft size={16} /> {t("toTournament")}
           </Link>
         </Button>
       </div>
@@ -75,10 +84,3 @@ export default async function TournamentParticipantsPage({
   );
 }
 
-function pluralizeParticipant(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return "участник";
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "участника";
-  return "участников";
-}
