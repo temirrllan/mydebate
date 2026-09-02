@@ -7,28 +7,31 @@ import { Pagination } from "@/components/ui/pagination";
 import { AdminFilterSelect, AdminFilterBar } from "@/components/admin/admin-search-bar";
 import { TicketCard } from "@/components/admin/ticket-card";
 import { SupportTicketStatus } from "@/lib/enums";
-import { SUPPORT_TICKET_STATUS_LABEL } from "@/lib/format";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = { title: "Обращения в поддержку" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "admin" });
+  return { title: t("supportMeta") };
+}
 
-const STATUS_OPTIONS = [
-  { value: "", label: "Все статусы" },
-  { value: SupportTicketStatus.OPEN, label: SUPPORT_TICKET_STATUS_LABEL[SupportTicketStatus.OPEN] },
-  { value: SupportTicketStatus.ANSWERED, label: SUPPORT_TICKET_STATUS_LABEL[SupportTicketStatus.ANSWERED] },
-  { value: SupportTicketStatus.CLOSED, label: SUPPORT_TICKET_STATUS_LABEL[SupportTicketStatus.CLOSED] },
+const STATUS_OPTIONS: { value: string; key: string | null; enumKey: string | null }[] = [
+  { value: "", key: "allStatuses", enumKey: null },
+  { value: SupportTicketStatus.OPEN, key: null, enumKey: SupportTicketStatus.OPEN },
+  { value: SupportTicketStatus.ANSWERED, key: null, enumKey: SupportTicketStatus.ANSWERED },
+  { value: SupportTicketStatus.CLOSED, key: null, enumKey: SupportTicketStatus.CLOSED },
 ];
 
 type SupportSearchParams = { status?: string; page?: string };
 
-function pluralizeTicket(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return "обращение";
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "обращения";
-  return "обращений";
-}
 
 export default async function SupportPage({ searchParams }: { searchParams: Promise<SupportSearchParams> }) {
+  const t = await getTranslations("admin");
+  const tEnum = await getTranslations("enums");
   await requireAdmin();
   const params = await searchParams;
   const page = Number(params.page) > 0 ? Number(params.page) : 1;
@@ -54,15 +57,18 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-navy-900">Обращения в поддержку</h2>
-      <p className="mt-1 text-sm text-muted">Отвечайте на вопросы пользователей и закрывайте обработанные обращения.</p>
+      <h2 className="text-xl font-bold text-navy-900">{t("supportTitle")}</h2>
+      <p className="mt-1 text-sm text-muted">{t("supportIntro")}</p>
 
       <AdminFilterBar className="mt-5" paramKeys={["status"]}>
         <AdminFilterSelect
           paramKey="status"
           value={params.status ?? ""}
-          options={STATUS_OPTIONS}
-          label="Статус"
+          options={STATUS_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.enumKey ? tEnum(`ticketStatus.${o.enumKey}`) : t(o.key!),
+            }))}
+          label={t("status")}
           wrapperClassName="w-full sm:w-64"
         />
       </AdminFilterBar>
@@ -71,20 +77,20 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         <EmptyState
           className="mt-6"
           icon={LifeBuoy}
-          title="Не удалось загрузить данные."
-          description="Попробуйте обновить страницу немного позже."
+          title={t("loadErrorTitle")}
+          description={t("loadErrorText")}
         />
       ) : result.items.length === 0 ? (
         <EmptyState
           className="mt-6"
           icon={LifeBuoy}
-          title="Обращений пока нет"
-          description="Здесь появятся обращения пользователей в поддержку."
+          title={t("noTickets")}
+          description={t("noTicketsText")}
         />
       ) : (
         <>
           <p className="mt-5 text-sm text-muted">
-            Найдено {result.total} {pluralizeTicket(result.total)}
+            {t("foundTickets", { count: result.total })}
           </p>
 
           <div className="mt-4 space-y-4">

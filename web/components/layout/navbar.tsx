@@ -81,6 +81,15 @@ function Avatar({ user }: { user: CurrentUser }) {
 
 const MOBILE_MENU_ID = "mobile-nav-menu";
 
+/**
+ * ПОРОГ ДЕСКТОПНОЙ ШАПКИ — xl (1280), а не lg (1024).
+ *
+ * На казахском подписи заметно длиннее русских («Әкімші панелі» вместо
+ * «Админ-панель», «Турнир құру» вместо «Создать турнир»), и у вошедшего
+ * администратора шапка на 1280px переставала помещаться: пункты меню
+ * переносились по словам и налезали на логотип. Ниже 1280 показываем бургер —
+ * он и так полностью повторяет содержимое шапки.
+ */
 export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
   const t = useTranslations("nav");
   const pathname = usePathname();
@@ -108,18 +117,18 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur">
-      <Container className="flex h-16 items-center justify-between">
+      <Container className="flex h-16 items-center justify-between gap-4">
         <Logo />
 
         {/* Десктоп-меню */}
-        <nav className="hidden items-center gap-6 lg:flex">
+        <nav className="hidden items-center gap-6 xl:flex">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
               className={cn(
-                "text-sm font-medium transition-colors",
+                "whitespace-nowrap text-sm font-medium transition-colors",
                 isActive(item.href)
                   ? "text-brand-600"
                   : "text-slate-600 hover:text-ink",
@@ -131,7 +140,7 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
         </nav>
 
         {/* Действия (десктоп) */}
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <LocaleSwitcher className="mr-1" />
           <Button asChild variant="outline" size="sm">
             <Link href="/tournaments/create">{t("createTournament")}</Link>
@@ -176,7 +185,7 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
         {/* Бургер */}
         <button
           ref={burgerRef}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink lg:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink xl:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label={t("menu")}
           aria-expanded={open}
@@ -188,7 +197,7 @@ export function Navbar({ user, unreadNotifications = 0 }: NavbarProps) {
 
       {/* Мобильное меню */}
       {open && (
-        <div id={MOBILE_MENU_ID} className="border-t border-line bg-white lg:hidden">
+        <div id={MOBILE_MENU_ID} className="border-t border-line bg-white xl:hidden">
           <nav aria-label={t("mobileMenu")}>
           <Container className="flex flex-col gap-1 py-4">
             {NAV.map((item) => (

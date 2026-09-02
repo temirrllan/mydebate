@@ -14,10 +14,20 @@ import {
 import { getAdminDashboardStats } from "@/lib/admin/queries";
 import { StatCard } from "@/components/admin/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = { title: "Обзор" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "admin" });
+  return { title: t("overviewTitle") };
+}
 
 export default async function AdminOverviewPage() {
+  const t = await getTranslations("admin");
   let stats;
   let loadError = false;
   try {
@@ -31,8 +41,8 @@ export default async function AdminOverviewPage() {
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="Не удалось загрузить данные."
-        description="Попробуйте обновить страницу немного позже."
+        title={t("loadErrorTitle")}
+        description={t("loadErrorText")}
       />
     );
   }
@@ -40,15 +50,15 @@ export default async function AdminOverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-bold text-navy-900">Обзор</h2>
-        <p className="mt-1 text-sm text-muted">Сводная статистика платформы.</p>
+        <h2 className="text-xl font-bold text-navy-900">{t("overviewTitle")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("overviewIntro")}</p>
       </div>
 
       {/* Акцент на показателях, требующих действий администратора. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           icon={Clock}
-          label="Турниров ждёт модерации"
+          label={t("statPending")}
           value={stats.tournamentsPending}
           tone="orange"
           accent
@@ -56,7 +66,7 @@ export default async function AdminOverviewPage() {
         />
         <StatCard
           icon={LifeBuoy}
-          label="Открытых обращений в поддержку"
+          label={t("statOpenTickets")}
           value={stats.openTickets}
           tone="red"
           accent
@@ -65,42 +75,42 @@ export default async function AdminOverviewPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} label="Пользователи" value={stats.totalUsers} tone="blue" href="/admin/users" />
+        <StatCard icon={Users} label={t("statUsers")} value={stats.totalUsers} tone="blue" href="/admin/users" />
         <StatCard
           icon={UserCog}
-          label="Организаторы"
+          label={t("statOrganizers")}
           value={stats.totalOrganizers}
           tone="blue"
           href="/admin/organizers"
         />
         <StatCard
           icon={Trophy}
-          label="Турниры всего"
+          label={t("statTournaments")}
           value={stats.totalTournaments}
           tone="navy"
           href="/admin/moderation?status=ALL"
         />
-        <StatCard icon={ClipboardList} label="Заявок на участие" value={stats.totalRegistrations} tone="gray" />
+        <StatCard icon={ClipboardList} label={t("statRegistrations")} value={stats.totalRegistrations} tone="gray" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           icon={CheckCircle2}
-          label="Опубликовано турниров"
+          label={t("statPublished")}
           value={stats.tournamentsPublished}
           tone="green"
           href="/admin/moderation?status=PUBLISHED"
         />
         <StatCard
           icon={EyeOff}
-          label="Скрыто"
+          label={t("statHidden")}
           value={stats.tournamentsHidden}
           tone="gray"
           href="/admin/moderation?status=HIDDEN"
         />
         <StatCard
           icon={XCircle}
-          label="Отклонено"
+          label={t("statRejected")}
           value={stats.tournamentsRejected}
           tone="red"
           href="/admin/moderation?status=REJECTED"

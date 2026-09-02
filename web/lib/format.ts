@@ -141,6 +141,39 @@ export function getTournamentStatusDisplay(
   return { key: status, tone: TOURNAMENT_STATUS_TONE[status] ?? "gray" };
 }
 
+// ---------------------------------------------------------------------------
+// Казахские названия месяцев — своей таблицей, а не через Intl.
+//
+// ПОЧЕМУ: Chrome заявляет поддержку kk-KZ (supportedLocalesOf её возвращает),
+// но данных по казахскому в его ICU нет — вместо «30 желтоқсан 2026» он
+// печатает «2026 M12 30». В Node (полный ICU 78) всё правильно.
+//
+// Из-за этого одна и та же дата выглядела по-разному в серверных и клиентских
+// компонентах, а у клиентского компонента, отрисованного и на сервере, и в
+// браузере, разметка при гидрации не совпала бы.
+//
+// Русский и английский Chrome форматирует корректно — их оставляем Intl.
+const MONTHS_KK = [
+  "қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым",
+  "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан",
+];
+const MONTHS_KK_SHORT = [
+  "қаң.", "ақп.", "нау.", "сәу.", "мам.", "мау.",
+  "шіл.", "там.", "қыр.", "қаз.", "қар.", "жел.",
+];
+/** Дни недели с понедельника — тоже отсутствуют в ICU браузера. */
+export const WEEKDAYS_KK_SHORT = ["дс", "сс", "ср", "бс", "жм", "сб", "жс"];
+
+export function kazakhMonths(short = false): string[] {
+  return short ? [...MONTHS_KK_SHORT] : [...MONTHS_KK];
+}
+
+/** «2026 ж. 30 желтоқсан» — порядок как в CLDR, чтобы совпадал с серверным. */
+function formatKazakhDate(d: Date, short: boolean): string {
+  const months = short ? MONTHS_KK_SHORT : MONTHS_KK;
+  return `${d.getUTCFullYear()} ж. ${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+}
+
 /**
  * «11 мая 2024» / «11 мамыр 2024» / «11 May 2024» — дата на языке интерфейса.
  *
@@ -151,9 +184,56 @@ export function getTournamentStatusDisplay(
  */
 export function formatDate(date: Date | string, locale: string): string {
   const d = typeof date === "string" ? new Date(date) : date;
+  if (locale === "kk") return formatKazakhDate(d, false);
   return new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
     day: "numeric",
     month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(d);
+}
+
+/**
+ * «11 мая 2024, 14:30» — дата И время на языке интерфейса.
+ *
+ * Пояс здесь Asia/Almaty, а НЕ UTC как в formatDate, и это не разнобой:
+ * formatDate показывает даты турниров, которые пришли из <input type="date">
+ * и лежат как UTC-полночь — у них нет времени суток. А здесь настоящая
+ * отметка времени (когда создали обращение), и её надо показывать в поясе
+ * площадки: иначе администратор в Казахстане видит время на пять часов назад.
+ *
+ * Пояс задан явно ещё и ради гидрации: без него сервер отформатировал бы
+ * время в своём поясе, браузер — в поясе пользователя, и React сообщил бы о
+ * расхождении разметки.
+ */
+export function formatDateTime(date: Date | string, locale: string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (locale === "kk") {
+    // Время берём у Intl (цифры от локали не зависят), дату — своей таблицей.
+    const time = new Intl.DateTimeFormat("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Almaty",
+    }).format(d);
+    return `${formatKazakhDate(d, false)}, ${time}`;
+  }
+  return new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Almaty",
+  }).format(d);
+}
+
+/** «11 мая 2024» коротким месяцем: «11 мая 2024» → «11 мая 2024 г.» → «11 мая 24». */
+export function formatDateShort(date: Date | string, locale: string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (locale === "kk") return formatKazakhDate(d, true);
+  return new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
+    day: "numeric",
+    month: "short",
     year: "numeric",
     timeZone: "UTC",
   }).format(d);

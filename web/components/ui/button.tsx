@@ -39,7 +39,10 @@ export function Button({
   return (
     <Comp
       className={cn(
-        "inline-flex items-center justify-center rounded-[var(--radius-btn)] font-medium transition-colors",
+        // whitespace-nowrap: подпись кнопки не должна ломаться по словам. На
+        // русском это почти не проявлялось, а на казахском «Турнир құру» и
+        // «Әкімші панелі» разъезжались на две строки и ломали высоту шапки.
+        "inline-flex items-center justify-center whitespace-nowrap rounded-[var(--radius-btn)] font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
         "disabled:pointer-events-none disabled:opacity-50",
         variants[variant],

@@ -9,8 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ROLE_LABEL } from "@/lib/format";
 import { Role } from "@/lib/enums";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = { title: "Организаторы" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "admin" });
+  return { title: t("organizersMeta") };
+}
 
 function OrganizerAvatar({ organizer }: { organizer: OrganizerStat }) {
   const initials = `${organizer.firstName[0] ?? ""}${organizer.lastName[0] ?? ""}`.toUpperCase();
@@ -33,6 +42,7 @@ function OrganizerAvatar({ organizer }: { organizer: OrganizerStat }) {
 }
 
 export default async function AdminOrganizersPage() {
+  const t = await getTranslations("admin");
   await requireAdmin();
 
   let organizers: OrganizerStat[] = [];
@@ -46,24 +56,24 @@ export default async function AdminOrganizersPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-navy-900">Организаторы</h2>
+      <h2 className="text-xl font-bold text-navy-900">{t("organizersTitle")}</h2>
       <p className="mt-1 text-sm text-muted">
-        Пользователи, которые публикуют турниры, и статистика по их турнирам.
+        {t("organizersIntro")}
       </p>
 
       {loadError ? (
         <EmptyState
           className="mt-6"
           icon={UserCog}
-          title="Не удалось загрузить данные."
-          description="Попробуйте обновить страницу немного позже."
+          title={t("loadErrorTitle")}
+          description={t("loadErrorText")}
         />
       ) : organizers.length === 0 ? (
         <EmptyState
           className="mt-6"
           icon={UserCog}
-          title="Пока нет организаторов"
-          description="Роль присваивается автоматически после первого одобренного турнира пользователя."
+          title={t("noOrganizers")}
+          description={t("noOrganizersText")}
         />
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -87,27 +97,27 @@ export default async function AdminOrganizersPage() {
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="text-lg font-bold text-navy-900">{o.totalTournaments}</p>
-                  <p className="text-[11px] text-muted">Всего</p>
+                  <p className="text-[11px] text-muted">{t("orgTotal")}</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-emerald-600">{o.published}</p>
-                  <p className="text-[11px] text-muted">Опубликовано</p>
+                  <p className="text-[11px] text-muted">{t("orgPublished")}</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-amber-600">{o.pending}</p>
-                  <p className="text-[11px] text-muted">На модерации</p>
+                  <p className="text-[11px] text-muted">{t("orgPending")}</p>
                 </div>
               </div>
 
               {o.hidden > 0 && (
-                <p className="mt-2 text-center text-xs text-muted">Скрыто / отклонено: {o.hidden}</p>
+                <p className="mt-2 text-center text-xs text-muted">{t("orgHiddenRejected", { count: o.hidden })}</p>
               )}
 
               <Link
                 href={`/admin/moderation?status=ALL&search=${encodeURIComponent(o.email)}`}
                 className="mt-4 block text-center text-sm font-medium text-brand-600 hover:text-brand-700"
               >
-                Смотреть турниры →
+                {t("orgViewTournaments")}
               </Link>
             </Card>
           ))}

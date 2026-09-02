@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/auth/password-input";
 import { FieldError } from "@/components/auth/field-error";
 import { createUserByAdmin } from "@/lib/actions/admin";
-import { ROLE_LABEL } from "@/lib/format";
 import { Role } from "@/lib/enums";
+import { useTranslations } from "next-intl";
 
 const initialState = undefined;
 
@@ -33,6 +33,8 @@ const EMPTY_VALUES = {
  * внутри createUserByAdmin — здесь ничего дополнительно рефетчить не нужно.
  */
 export function CreateUserForm() {
+  const t = useTranslations("admin");
+  const tEnum = useTranslations("enums");
   const [state, formAction, pending] = useActionState(createUserByAdmin, initialState);
   const [values, setValues] = useState(EMPTY_VALUES);
 
@@ -59,10 +61,10 @@ export function CreateUserForm() {
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
           <UserPlus size={18} />
         </div>
-        <h2 className="text-lg font-bold text-navy-900">Добавить пользователя</h2>
+        <h2 className="text-lg font-bold text-navy-900">{t("addUser")}</h2>
       </div>
       <p className="mt-1 text-sm text-muted">
-        Аккаунт будет создан сразу, без письма подтверждения — сообщите пользователю пароль лично.
+        {t("addUserHint")}
       </p>
 
       {state?.success && (
@@ -81,7 +83,7 @@ export function CreateUserForm() {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="firstName" className="text-sm font-medium text-ink">
-              Имя <span className="text-rose-500">*</span>
+              {t("firstName")} <span className="text-rose-500">*</span>
             </label>
             <div className="relative mt-1.5">
               <User size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -89,7 +91,7 @@ export function CreateUserForm() {
                 id="firstName"
                 name="firstName"
                 required
-                placeholder="Введите имя"
+                placeholder={t("firstNamePlaceholder")}
                 className="pl-10"
                 value={values.firstName}
                 onChange={(e) => update("firstName", e.target.value)}
@@ -103,14 +105,14 @@ export function CreateUserForm() {
 
           <div>
             <label htmlFor="lastName" className="text-sm font-medium text-ink">
-              Фамилия <span className="text-rose-500">*</span>
+              {t("lastName")} <span className="text-rose-500">*</span>
             </label>
             <div className="mt-1.5">
               <Input
                 id="lastName"
                 name="lastName"
                 required
-                placeholder="Введите фамилию"
+                placeholder={t("lastNamePlaceholder")}
                 value={values.lastName}
                 onChange={(e) => update("lastName", e.target.value)}
                 invalid={Boolean(fieldErrors.lastName?.length)}
@@ -148,7 +150,7 @@ export function CreateUserForm() {
 
           <div>
             <label htmlFor="phone" className="text-sm font-medium text-ink">
-              Телефон <span className="text-muted">(необязательно)</span>
+              {t("phone")} <span className="text-muted">{t("optional")}</span>
             </label>
             <div className="relative mt-1.5">
               <Phone size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -156,7 +158,7 @@ export function CreateUserForm() {
                 id="phone"
                 name="phone"
                 type="tel"
-                placeholder="Введите номер телефона"
+                placeholder={t("phonePlaceholder")}
                 className="pl-10"
                 value={values.phone}
                 onChange={(e) => update("phone", e.target.value)}
@@ -172,7 +174,7 @@ export function CreateUserForm() {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="password" className="text-sm font-medium text-ink">
-              Пароль <span className="text-rose-500">*</span>
+              {t("password")} <span className="text-rose-500">*</span>
             </label>
             <div className="mt-1.5">
               <PasswordInput
@@ -180,7 +182,7 @@ export function CreateUserForm() {
                 name="password"
                 autoComplete="new-password"
                 required
-                placeholder="Придумайте пароль"
+                placeholder={t("passwordPlaceholder")}
                 value={values.password}
                 onChange={(e) => update("password", e.target.value)}
                 invalid={Boolean(fieldErrors.password?.length)}
@@ -193,7 +195,7 @@ export function CreateUserForm() {
 
           <div>
             <label htmlFor="role" className="text-sm font-medium text-ink">
-              Роль <span className="text-rose-500">*</span>
+              {t("role")} <span className="text-rose-500">*</span>
             </label>
             <div className="mt-1.5">
               <Select
@@ -207,7 +209,7 @@ export function CreateUserForm() {
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
-                    {ROLE_LABEL[r] ?? r}
+                    {tEnum(`role.${r}`)}
                   </option>
                 ))}
               </Select>
@@ -218,10 +220,10 @@ export function CreateUserForm() {
 
         <Button type="submit" disabled={pending}>
           {pending ? (
-            "Создаём…"
+            t("creating")
           ) : (
             <>
-              <UserPlus size={16} /> Создать пользователя
+              <UserPlus size={16} /> {t("createUser")}
             </>
           )}
         </Button>

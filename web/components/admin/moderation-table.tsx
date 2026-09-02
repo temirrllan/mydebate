@@ -7,26 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  FORMAT_LABEL,
-  LOCATION_TYPE_LABEL,
-  TOURNAMENT_STATUS_LABEL,
-  formatDateRu,
-  getTournamentStatusDisplay,
-} from "@/lib/format";
+import { formatDate, getTournamentStatusDisplay } from "@/lib/format";
 import { TournamentStatus } from "@/lib/enums";
 import { approveTournament, rejectTournament, hideTournament, deleteTournament } from "@/lib/actions/admin";
 import type { AdminTournamentListItem } from "@/lib/admin/queries";
+import { useLocale, useTranslations } from "next-intl";
 
 type RowAction = "approve" | "reject" | "hide" | "delete";
 
-function pluralizeApplication(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return "заявка";
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "заявки";
-  return "заявок";
-}
 
 /**
  * Список турниров очереди модерации / общего управления
@@ -45,6 +33,11 @@ export function ModerationTable({
    * убирается из списка, если новый статус турнира больше не проходит фильтр. */
   activeStatus: string;
 }) {
+  // Переводчик назван tr, а не t: внутри map переменная турнира тоже `t`,
+  // и одноимённый хук был бы ею затенён.
+  const tr = useTranslations("admin");
+  const tEnum = useTranslations("enums");
+  const locale = useLocale();
   const [items, setItems] = useState(initialItems);
   const [pendingRow, setPendingRow] = useState<{ id: string; action: RowAction } | null>(null);
   const [rowError, setRowError] = useState<Record<string, string>>({});
@@ -90,7 +83,7 @@ export function ModerationTable({
       const result = await call();
       setPendingRow(null);
       if (!result.ok) {
-        setRowError((prev) => ({ ...prev, [id]: result.error ?? "Что-то пошло не так. Попробуйте позже." }));
+        setRowError((prev) => ({ ...prev, [id]: result.error ?? tr("genericError") }));
         return;
       }
       applyStatusUpdate(id, nextStatus, nextStatus === TournamentStatus.HIDDEN ? null : null);
@@ -101,7 +94,7 @@ export function ModerationTable({
   function handleReject(id: string) {
     const reason = rejectReason.trim();
     if (!reason) {
-      setRowError((prev) => ({ ...prev, [id]: "Укажите причину отклонения" }));
+      setRowError((prev) => ({ ...prev, [id]: tr("rejectionRequired") }));
       return;
     }
     clearRowError(id);
@@ -110,7 +103,7 @@ export function ModerationTable({
       const result = await rejectTournament(id, reason);
       setPendingRow(null);
       if (!result.ok) {
-        const message = result.error ?? result.fieldErrors?.reason?.[0] ?? "Что-то пошло не так. Попробуйте позже.";
+        const message = result.error ?? result.fieldErrors?.reason?.[0] ?? tr("genericError");
         setRowError((prev) => ({ ...prev, [id]: message }));
         return;
       }
@@ -124,8 +117,8 @@ export function ModerationTable({
     return (
       <EmptyState
         icon={SearchX}
-        title="Ничего не найдено"
-        description="Нет турниров, соответствующих выбранным фильтрам."
+        title={tr("nothingFound")}
+        description={tr("noTournaments")}
       />
     );
   }
@@ -157,27 +150,30 @@ export function ModerationTable({
                   ) : (
                     <span className="font-semibold text-ink">{t.title}</span>
                   )}
-                  <Badge tone={statusDisplay.tone}>{TOURNAMENT_STATUS_LABEL[statusDisplay.key] ?? statusDisplay.key}</Badge>
+                  <Badge tone={statusDisplay.tone}>{tEnum(`tournamentStatus.${statusDisplay.key}`)}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  Организатор: {t.organizer.firstName} {t.organizer.lastName} · {t.organizer.email}
+                  {tr("organizerLine", {
+                    name: `${t.organizer.firstName} ${t.organizer.lastName}`,
+                    email: t.organizer.email,
+                  })}
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
                   <span className="inline-flex items-center gap-1">
-                    <Calendar size={14} /> {formatDateRu(t.startDate)}
+                    <Calendar size={14} /> {formatDate(t.startDate, locale)}
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <MapPin size={14} /> {t.city ?? LOCATION_TYPE_LABEL[t.locationType] ?? "Онлайн"}
+                    <MapPin size={14} /> {t.city ?? tEnum(`locationType.${t.locationType}`)}
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <Users size={14} /> {t.registrationsCount} {pluralizeApplication(t.registrationsCount)}
+                    <Users size={14} /> {tr("applicationsCount", { count: t.registrationsCount })}
                   </span>
                   <Badge tone="gray" className="text-[11px]">
-                    {FORMAT_LABEL[t.format] ?? t.format}
+                    {tEnum(`format.${t.format}`)}
                   </Badge>
                 </div>
                 {t.rejectionReason && (
-                  <p className="mt-2 text-xs text-rose-600">Причина отклонения: {t.rejectionReason}</p>
+                  <p className="mt-2 text-xs text-rose-600">{tr("rejectionReasonLine", { reason: t.rejectionReason })}</p>
                 )}
               </div>
 
@@ -197,7 +193,7 @@ export function ModerationTable({
                       ) : (
                         <Check size={14} />
                       )}
-                      Одобрить
+                      {tr("approve")}
                     </Button>
                   )}
 
@@ -211,12 +207,12 @@ export function ModerationTable({
                       setExpandedReject((cur) => (cur === t.id ? null : t.id));
                     }}
                   >
-                    <X size={14} /> Отклонить
+                    <X size={14} /> {tr("reject")}
                   </Button>
 
                   <Button asChild variant="ghost" size="sm">
                     <Link href={`/tournaments/${t.id}/edit`}>
-                      <SquarePen size={14} /> Редактировать
+                      <SquarePen size={14} /> {tr("edit")}
                     </Link>
                   </Button>
 
@@ -235,7 +231,7 @@ export function ModerationTable({
                       ) : (
                         <EyeOff size={14} />
                       )}
-                      Скрыть
+                      {tr("hide")}
                     </Button>
                   )}
 
@@ -255,11 +251,11 @@ export function ModerationTable({
                         {busy && pendingRow?.action === "delete" ? (
                           <Loader2 size={14} className="animate-spin" />
                         ) : (
-                          "Точно удалить?"
+                          tr("confirmDelete")
                         )}
                       </Button>
                       <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => cancelDelete(t.id)}>
-                        Нет
+                        {tr("no")}
                       </Button>
                     </span>
                   ) : (
@@ -274,7 +270,7 @@ export function ModerationTable({
                       disabled={busy}
                       onClick={() => setConfirmDeleteId(t.id)}
                     >
-                      <Trash2 size={14} /> Удалить
+                      <Trash2 size={14} /> {tr("delete")}
                     </Button>
                   )}
                 </div>
@@ -284,21 +280,21 @@ export function ModerationTable({
             {expandedReject === t.id && (
               <div className="mt-4 rounded-lg border border-line bg-canvas p-4">
                 <label htmlFor={`reject-reason-${t.id}`} className="text-sm font-medium text-ink">
-                  Причина отклонения <span className="text-rose-500">*</span>
+                  {tr("rejectionReason")} <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   id={`reject-reason-${t.id}`}
                   rows={3}
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Опишите, что нужно исправить организатору…"
+                  placeholder={tr("rejectionPlaceholder")}
                   className="mt-1.5 w-full rounded-[var(--radius-btn)] border border-line bg-white p-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500"
                   aria-describedby={rowError[t.id] ? `row-error-${t.id}` : undefined}
                 />
                 <div className="mt-2 flex items-center gap-2">
                   <Button type="button" size="sm" disabled={busy} onClick={() => handleReject(t.id)}>
                     {busy && pendingRow?.action === "reject" && <Loader2 size={14} className="animate-spin" />}
-                    Отклонить турнир
+                    {tr("rejectTournament")}
                   </Button>
                   <Button
                     type="button"
@@ -310,7 +306,7 @@ export function ModerationTable({
                       clearRowError(t.id);
                     }}
                   >
-                    Отмена
+                    {tr("cancel")}
                   </Button>
                 </div>
               </div>

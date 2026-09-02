@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, RotateCcw, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /**
  * Панель-контейнер для фильтров админских таблиц: единая рамка, заголовок,
@@ -23,6 +24,7 @@ export function AdminFilterBar({
   paramKeys: string[];
   className?: string;
 }) {
+  const t = useTranslations("admin");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -47,7 +49,7 @@ export function AdminFilterBar({
       <div className="flex items-center justify-between gap-3 border-b border-line bg-canvas px-4 py-2.5">
         <div className="flex items-center gap-2 text-sm font-semibold text-navy-900">
           <SlidersHorizontal size={15} className="text-brand-600" aria-hidden="true" />
-          Фильтры
+          {t("filters")}
           {activeCount > 0 && (
             <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white">
               {activeCount}
@@ -60,7 +62,7 @@ export function AdminFilterBar({
           disabled={activeCount === 0}
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted"
         >
-          <RotateCcw size={13} /> Сбросить
+          <RotateCcw size={13} /> {t("reset")}
         </button>
       </div>
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end">{children}</div>
@@ -86,6 +88,7 @@ export function AdminSearchInput({
   paramKey?: string;
   className?: string;
 }) {
+  const t = useTranslations("admin");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -121,7 +124,7 @@ export function AdminSearchInput({
 
   return (
     <div className={className}>
-      <span className="text-xs font-medium text-muted">Поиск</span>
+      <span className="text-xs font-medium text-muted">{t("search")}</span>
       <div className="relative mt-1.5">
         <Search
           size={17}
@@ -144,7 +147,7 @@ export function AdminSearchInput({
               setValue("");
               commit("");
             }}
-            aria-label="Очистить поиск"
+            aria-label={t("clearSearch")}
             className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-ink"
           >
             <X size={14} />

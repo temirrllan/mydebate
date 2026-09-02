@@ -5,9 +5,11 @@ import { UserPlus, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateUserForm } from "@/components/admin/create-user-form";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 /** Раскрывающийся блок с формой создания пользователя (/admin/users). */
 export function CreateUserToggle() {
+  const t = useTranslations("admin");
   const [open, setOpen] = useState(false);
 
   return (
@@ -20,7 +22,7 @@ export function CreateUserToggle() {
         onClick={() => setOpen((v) => !v)}
       >
         <UserPlus size={16} />
-        Добавить пользователя
+        {t("addUser")}
         <ChevronDown size={16} className={cn("transition-transform", open && "rotate-180")} aria-hidden="true" />
       </Button>
 

@@ -20,10 +20,13 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { LOCALE_TAG, type Locale } from "@/i18n/routing";
+import { WEEKDAYS_KK_SHORT, kazakhMonths } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Названия месяцев на языке интерфейса: «Январь» / «Қаңтар» / «January». */
 function monthNames(locale: string): string[] {
+  // Казахский Intl в браузере не знает (см. lib/format.ts) — берём таблицу.
+  if (locale === "kk") return kazakhMonths();
   const fmt = new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
     month: "long",
     timeZone: "UTC",
@@ -35,6 +38,7 @@ function monthNames(locale: string): string[] {
 
 /** Короткие дни недели, начиная с понедельника. */
 function weekdayNames(locale: string): string[] {
+  if (locale === "kk") return [...WEEKDAYS_KK_SHORT];
   const fmt = new Intl.DateTimeFormat(LOCALE_TAG[locale as Locale] ?? locale, {
     weekday: "short",
     timeZone: "UTC",

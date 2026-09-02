@@ -4,23 +4,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, ShieldCheck, Users, UserCog, LifeBuoy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
-const SECTIONS: { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
-  { href: "/admin", label: "Обзор", icon: LayoutDashboard, exact: true },
-  { href: "/admin/moderation", label: "Модерация", icon: ShieldCheck },
-  { href: "/admin/users", label: "Пользователи", icon: Users },
-  { href: "/admin/organizers", label: "Организаторы", icon: UserCog },
-  { href: "/admin/support", label: "Обращения", icon: LifeBuoy },
+const SECTIONS: { href: string; key: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
+  { href: "/admin", key: "navOverview", icon: LayoutDashboard, exact: true },
+  { href: "/admin/moderation", key: "navModeration", icon: ShieldCheck },
+  { href: "/admin/users", key: "navUsers", icon: Users },
+  { href: "/admin/organizers", key: "navOrganizers", icon: UserCog },
+  { href: "/admin/support", key: "navSupport", icon: LifeBuoy },
 ];
 
 /** Навигация по разделам админ-панели (app/admin/layout.tsx) — активный пункт подсвечен по pathname. */
 export function AdminNav() {
+  const t = useTranslations("admin");
   const pathname = usePathname();
 
   return (
     <div className="relative">
       <nav
-        aria-label="Разделы админ-панели"
+        aria-label={t("navLabel")}
         className="flex gap-1 overflow-x-auto border-b border-line sm:gap-2"
       >
         {SECTIONS.map((section) => {
@@ -39,7 +41,7 @@ export function AdminNav() {
               )}
             >
               <Icon size={16} />
-              {section.label}
+              {t(section.key)}
             </Link>
           );
         })}

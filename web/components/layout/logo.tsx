@@ -40,7 +40,7 @@ export function Logo({
 
   if (href === null) return mark;
   return (
-    <Link href={href} className={cn("inline-flex", className)}>
+    <Link href={href} className={cn("inline-flex shrink-0", className)}>
       {mark}
     </Link>
   );
