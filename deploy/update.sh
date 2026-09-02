@@ -55,7 +55,11 @@ echo "==> Подтягиваем изменения в $APP_DIR"
 REMOTE_URL="$(git remote get-url origin)"
 ANON_URL="$(printf '%s' "$REMOTE_URL" | sed -E 's#(https://)[^@/]*@#\1#')"
 
-if ! GIT_TERMINAL_PROMPT=0 git fetch --prune "$ANON_URL" main; then
+# `-c credential.helper=` отключает сохранённые учётные данные ТОЛЬКО для этой
+# команды. Без этого git отправляет то, что лежит в хранилище (например,
+# протухший токен), GitHub отвечает 401 — и запрос к ПУБЛИЧНОМУ репозиторию,
+# который прошёл бы анонимно, превращается в требование логина.
+if ! GIT_TERMINAL_PROMPT=0 git -c credential.helper= fetch --prune "$ANON_URL" main; then
   echo "ОШИБКА: не удалось забрать изменения из $ANON_URL." >&2
   echo "Проверьте на сервере: git -C $APP_DIR remote -v && git -C $APP_DIR fetch origin" >&2
   exit 1
